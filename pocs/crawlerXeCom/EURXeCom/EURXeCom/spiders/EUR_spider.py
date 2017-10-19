@@ -29,6 +29,6 @@ class EURSpider(scrapy.Spider):
                         yield {
                             'date': self.date_formated(),
                             'currency': identifier,
-                            'max_value': float(currency_col.extract().strip()),
+                            'value': float(currency_col.extract().strip()),
                         }
 
