@@ -16,3 +16,6 @@ Please read the doc, and tell me things :P
 ## Python references for microservices
 - http://flask.pocoo.org/
 - https://github.com/nameko/nameko
+
+## Mixing microservices and Scrapy
+https://stackoverflow.com/questions/36384286/how-to-integrate-flask-scrapy
