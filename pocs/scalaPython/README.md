@@ -11,7 +11,16 @@ With this approach we will we independent in our codes, without using some kinds
 
 The good point is that this way is more scalable than the others, and I think more stable (It admits generations of dockers with the python crawlers, and you haven't to worry about the selfconfiguration)...
 
-Please read the doc, and tell me things :P
+## UPDATEEEEE 
+After some reviews, there are one module that provides this funcionality:
+http://scrapyrt.readthedocs.io/en/latest/api.html
+
+With that you can invoke through REST from Akka to the "Crawler" and return the JSON formats. 
+
+I've thought in a pipeline similar to that:
+
+Akka Actor -> Give me all values from 10-10-2017 -> ScrapyRT -> Return JSON with new Values -> Akka Actor -> Save on DB, CSV...
+
 
 ## Python references for microservices
 - http://flask.pocoo.org/
