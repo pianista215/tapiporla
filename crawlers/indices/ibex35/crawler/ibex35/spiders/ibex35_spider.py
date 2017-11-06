@@ -5,11 +5,18 @@ from datetime import datetime as dt
 class Ibex35Spider(scrapy.Spider):
     name = "ibex35"
 
+    lookup_until_date = None
+
     start_urls = [
         "http://www.eleconomista.es/indice/IBEX-35/historico"
     ]
 
-    def parseDatetime(self,string): 
+    def __init__(self, lookup_until_date=None, *args, **kwargs):
+        super(Ibex35Spider, self).__init__(*args, **kwargs)
+        if lookup_until_date is not None:
+            self.lookup_until_date = dt.strptime(lookup_until_date, "%d-%m-%Y")
+
+    def parseDatetimeEleconomista(self,string): 
         return dt.strptime(string, "%d/%m/%y")
 
     def parseFloat(self, string):
@@ -17,7 +24,7 @@ class Ibex35Spider(scrapy.Spider):
 
     def is_date(self,string):
         try:
-            self.parseDatetime(string)
+            self.parseDatetimeEleconomista(string)
             return True
         except ValueError:
             return False
@@ -29,6 +36,7 @@ class Ibex35Spider(scrapy.Spider):
         close_value = None
         max_value = None
         min_value = None
+        found_limit = False #When the limit date is found, don't process more
         for ibex_row_data in response.css('table[class*=tablehistoricos]').css("tbody").css("tr"):
             for col_num, ibex_col_data in enumerate(ibex_row_data.css("td::text")):
                 col_value = ibex_col_data.extract().strip()
@@ -38,9 +46,12 @@ class Ibex35Spider(scrapy.Spider):
                     close_value = None
                     max_value = None
                     min_value = None
+                    parsed_date = None
                     if self.is_date(col_value):
-                        parsed_date = self.parseDatetime(col_value)
+                        parsed_date = self.parseDatetimeEleconomista(col_value)
                         ibex_date = parsed_date.strftime("%d-%m-%Y")
+                        if self.lookup_until_date is not None:
+                            found_limit = parsed_date > self.lookup_until_date
                     else:
                         validIbexRow = False
                         
@@ -52,7 +63,7 @@ class Ibex35Spider(scrapy.Spider):
                     elif col_num == 5:
                         min_value = self.parseFloat(col_value)
 
-            if validIbexRow:
+            if validIbexRow and found_limit:
                 yield {
                     'date': ibex_date,
                     'close_value': close_value,
@@ -60,9 +71,7 @@ class Ibex35Spider(scrapy.Spider):
                     'min_value': min_value
                 }
 
-            
-
-        #next_page = response.css('[data-page-next]::attr(href)').extract_first()
-        #if next_page is not None:
-        #    next_page = response.urljoin(next_page)
-        #    yield scrapy.Request(next_page, callback=self.parse)
+        next_page = response.css('.enlaces').css('a.posterior::attr(href)').extract_first()
+        if next_page is not None and found_limit:
+            next_page = response.urljoin(next_page)
+            yield scrapy.Request(next_page, callback=self.parse)
