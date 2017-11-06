@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Scrapy settings for ibex35ElEconomista project
+# Scrapy settings for ibex35 project
 #
 # For simplicity, this file contains only settings considered important or
 # commonly used. You can find more settings consulting the documentation:
@@ -9,10 +9,10 @@
 #     http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html
 #     http://scrapy.readthedocs.org/en/latest/topics/spider-middleware.html
 
-BOT_NAME = 'ibex35ElEconomista'
+BOT_NAME = 'ibex35'
 
-SPIDER_MODULES = ['ibex35ElEconomista.spiders']
-NEWSPIDER_MODULE = 'ibex35ElEconomista.spiders'
+SPIDER_MODULES = ['ibex35.spiders']
+NEWSPIDER_MODULE = 'ibex35.spiders'
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
@@ -47,13 +47,13 @@ ROBOTSTXT_OBEY = True
 # Enable or disable spider middlewares
 # See http://scrapy.readthedocs.org/en/latest/topics/spider-middleware.html
 #SPIDER_MIDDLEWARES = {
-#    'ibex35ElEconomista.middlewares.Ibex35EleconomistaSpiderMiddleware': 543,
+#    'ibex35.middlewares.Ibex35SpiderMiddleware': 543,
 #}
 
 # Enable or disable downloader middlewares
 # See http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html
 #DOWNLOADER_MIDDLEWARES = {
-#    'ibex35ElEconomista.middlewares.MyCustomDownloaderMiddleware': 543,
+#    'ibex35.middlewares.MyCustomDownloaderMiddleware': 543,
 #}
 
 # Enable or disable extensions
@@ -65,7 +65,7 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See http://scrapy.readthedocs.org/en/latest/topics/item-pipeline.html
 #ITEM_PIPELINES = {
-#    'ibex35ElEconomista.pipelines.Ibex35EleconomistaPipeline': 300,
+#    'ibex35.pipelines.Ibex35Pipeline': 300,
 #}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
