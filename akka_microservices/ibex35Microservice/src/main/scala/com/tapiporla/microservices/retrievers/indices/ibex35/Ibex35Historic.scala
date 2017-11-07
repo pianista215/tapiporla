@@ -1,6 +1,4 @@
-package com.tapiporla.microservices.retrievers.indices.common
-
-import java.util.Date
+package com.tapiporla.microservices.retrievers.indices.ibex35
 
 case class Ibex35Historic(
                            date: String,

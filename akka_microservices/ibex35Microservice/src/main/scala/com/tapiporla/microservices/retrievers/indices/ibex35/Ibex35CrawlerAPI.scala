@@ -1,16 +1,16 @@
-package com.tapiporla.microservices.retrievers.indices.common.ibex35
+package com.tapiporla.microservices.retrievers.indices.ibex35
 
 import java.util.Date
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import akka.actor.{Actor, ActorLogging}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshalling.Marshal
-import akka.http.scaladsl.model.{HttpMethod, HttpMethods, HttpRequest, RequestEntity}
+import akka.http.scaladsl.model.{HttpRequest, RequestEntity}
 import akka.stream.ActorMaterializer
 import com.tapiporla.microservices.retrievers.common.{ScrapyRTDefaultProtocol, ScrapyRTRequest}
-import com.tapiporla.microservices.retrievers.indices.common.Ibex35Historic
-import com.tapiporla.microservices.retrievers.indices.common.ibex35.Ibex35CrawlerAPI.{RetrieveAllIbexData, RetrieveIbexDataFrom}
+import com.tapiporla.microservices.retrievers.indices.ibex35.Ibex35CrawlerAPI.{RetrieveAllIbexData, RetrieveIbexDataFrom}
+
+import scala.concurrent.ExecutionContext.Implicits.global
 
 object Ibex35CrawlerAPI {
 

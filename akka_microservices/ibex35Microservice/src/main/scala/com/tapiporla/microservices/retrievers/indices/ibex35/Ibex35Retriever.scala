@@ -1,9 +1,9 @@
-package com.tapiporla.microservices.retrievers.indices.common.ibex35
+package com.tapiporla.microservices.retrievers.indices.ibex35
 
 import akka.actor.Props
 import com.tapiporla.microservices.retrievers.common.{ElasticDAO, Retriever}
 import com.tapiporla.microservices.retrievers.common.Retriever.UpdateData
-import com.tapiporla.microservices.retrievers.indices.common.ibex35.Ibex35CrawlerAPI.RetrieveAllIbexData
+import Ibex35CrawlerAPI.RetrieveAllIbexData
 
 /**
   * Actor in charge of the Ibex35 data retrieved from ScrapyRT

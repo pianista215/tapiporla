@@ -2,7 +2,7 @@ package com.tapiporla.microservices.retrievers
 
 import akka.actor.{ActorSystem, Props}
 import com.tapiporla.microservices.retrievers.common.Retriever.UpdateData
-import com.tapiporla.microservices.retrievers.indices.common.ibex35.Ibex35Retriever
+import com.tapiporla.microservices.retrievers.indices.ibex35.Ibex35Retriever
 
 import scala.concurrent.duration._
 
