@@ -8,11 +8,13 @@ class Ibex35Spider(scrapy.Spider):
 
     lookup_until_date = None
 
+    parameters = None
+
     start_urls = [
         "http://www.eleconomista.es/indice/IBEX-35/historico"
     ]
 
-    __allowed = ("lookup_until_date")
+    __allowed = ("parameters")
 
     def __init__(self, lookup_until_date=None, *args, **kwargs):
         super(Ibex35Spider, self).__init__(*args, **kwargs)
@@ -22,6 +24,9 @@ class Ibex35Spider(scrapy.Spider):
 
         if lookup_until_date is not None:
             self.lookup_until_date = dt.strptime(lookup_until_date, "%d-%m-%Y")
+
+        if 'lookup_until_date' in self.parameters:
+            self.lookup_until_date = dt.strptime(self.parameters['lookup_until_date'], "%d-%m-%Y")
 
     def parseDatetimeEleconomista(self,string): 
         return dt.strptime(string, "%d/%m/%y")
@@ -38,6 +43,7 @@ class Ibex35Spider(scrapy.Spider):
 
 
     def parse(self, response):
+        self.logger.warning(self.parameters)
         validIbexRow = False
         ibex_date = None
         close_value = None
