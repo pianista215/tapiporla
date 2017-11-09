@@ -26,8 +26,8 @@ class Ibex35Spider(scrapy.Spider):
     def parseDatetimeEleconomista(self,string): 
         return dt.strptime(string, "%d/%m/%y")
 
-    def parseFloat(self, string):
-        return float(string.replace(".","").replace(",","."))
+    def strFloat(self, string):
+        return string.replace(".","").replace(",",".")
 
     def is_date(self,string):
         try:
@@ -64,11 +64,11 @@ class Ibex35Spider(scrapy.Spider):
                         
                 elif validIbexRow:
                     if col_num == 1:
-                        close_value = self.parseFloat(col_value)
+                        close_value = self.strFloat(col_value)
                     elif col_num == 4:
-                        max_value = self.parseFloat(col_value)
+                        max_value = self.strFloat(col_value)
                     elif col_num == 5:
-                        min_value = self.parseFloat(col_value)
+                        min_value = self.strFloat(col_value)
 
             if validIbexRow and not found_limit:
                 yield {

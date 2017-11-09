@@ -7,9 +7,16 @@ import spray.json.DefaultJsonProtocol
 case class ScrapyRTRequest(
                             spider_name: String,
                             start_requests: Boolean,
-                            request: Map[String, String]
+                            lookup_until_date: String //TODO:Generic
                           )
+
+case class ScrapyRTResponse(
+                           status: String,
+                           spider_name: String,
+                           items: List[Map[String,String]]
+                           )
 
 trait ScrapyRTDefaultProtocol extends SprayJsonSupport with DefaultJsonProtocol{
   implicit val scrapyRTRequest = jsonFormat3(ScrapyRTRequest)
+  implicit val scrapyRTResponse = jsonFormat3(ScrapyRTResponse)
 }
