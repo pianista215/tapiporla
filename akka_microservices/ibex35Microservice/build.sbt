@@ -21,10 +21,12 @@ libraryDependencies ++= Seq(
   //Elastic4s
   "com.sksamuel.elastic4s" %% "elastic4s-core" % elastic4sVersion,
   "com.sksamuel.elastic4s" %% "elastic4s-tcp" % elastic4sVersion,
+  "com.sksamuel.elastic4s" %% "elastic4s-xpack-security" % elastic4sVersion,
   "com.sksamuel.elastic4s" %% "elastic4s-testkit" % elastic4sVersion % "test",
   "com.sksamuel.elastic4s" %% "elastic4s-embedded" % elastic4sVersion % "test",
 
   //Jodatime
   "com.github.nscala-time" %% "nscala-time" % jodaTimeWrapper
 )
-        
+
+resolvers += "elasticsearch-releases" at "https://artifacts.elastic.co/maven"
