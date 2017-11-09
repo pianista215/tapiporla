@@ -1,5 +1,6 @@
 import scrapy
 from datetime import datetime as dt
+import logging
 
 
 class Ibex35Spider(scrapy.Spider):
@@ -11,8 +12,14 @@ class Ibex35Spider(scrapy.Spider):
         "http://www.eleconomista.es/indice/IBEX-35/historico"
     ]
 
+    __allowed = ("lookup_until_date")
+
     def __init__(self, lookup_until_date=None, *args, **kwargs):
         super(Ibex35Spider, self).__init__(*args, **kwargs)
+        for k, v in kwargs.iteritems():
+            assert( k in self.__class__.__allowed )
+            setattr(self, k, v)
+
         if lookup_until_date is not None:
             self.lookup_until_date = dt.strptime(lookup_until_date, "%d-%m-%Y")
 
