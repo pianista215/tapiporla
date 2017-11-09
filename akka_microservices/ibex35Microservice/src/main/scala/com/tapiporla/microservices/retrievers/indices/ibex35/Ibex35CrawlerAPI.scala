@@ -60,7 +60,7 @@ class Ibex35CrawlerAPI extends Actor with ActorLogging with ScrapyRTDefaultProto
 
   private def buildRequest(fromDate: Option[Date] = None): ScrapyRTRequest = {
     val dateParsed = "23-10-2017" //TODO: From
-    ScrapyRTRequest("ibex35", true, dateParsed) //Generic way to pass arguments (Modify docker to allow params map??)
+    ScrapyRTRequest("ibex35", true, Map("lookup_until_date" -> dateParsed))
   }
 
 }

@@ -7,7 +7,7 @@ import spray.json.DefaultJsonProtocol
 case class ScrapyRTRequest(
                             spider_name: String,
                             start_requests: Boolean,
-                            lookup_until_date: String //TODO:Generic
+                            parameters: Map[String,String]
                           )
 
 case class ScrapyRTResponse(
