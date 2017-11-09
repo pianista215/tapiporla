@@ -9,18 +9,20 @@ import akka.http.scaladsl.model.{HttpMethods, HttpRequest, RequestEntity, Respon
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import com.tapiporla.microservices.retrievers.common.{ScrapyRTDefaultProtocol, ScrapyRTRequest, ScrapyRTResponse}
-import com.tapiporla.microservices.retrievers.indices.ibex35.Ibex35CrawlerAPI.{RetrieveAllIbexData, RetrieveIbexDataFrom}
+import com.tapiporla.microservices.retrievers.indices.ibex35.Ibex35CrawlerAPI.{CantRetrieveDataFromIbex35, IbexDataRetrieved, RetrieveAllIbexData, RetrieveIbexDataFrom}
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
+
+import akka.pattern.pipe
 
 object Ibex35CrawlerAPI {
 
   object RetrieveAllIbexData
   case class RetrieveIbexDataFrom(date: Date)
   case class IbexDataRetrieved(ibexData: Seq[Ibex35Historic])
-
+  object CantRetrieveDataFromIbex35
 }
 
 
@@ -37,16 +39,19 @@ class Ibex35CrawlerAPI extends Actor with ActorLogging with ScrapyRTDefaultProto
   def receive = {
 
     case RetrieveAllIbexData => //TODO: Errors handling
-      val pp = Marshal(buildRequest()).to[RequestEntity] flatMap { rqEntity =>
+      Marshal(buildRequest()).to[RequestEntity] flatMap { rqEntity =>
         http.singleRequest(HttpRequest(method = HttpMethods.POST, uri = endpoint, entity = rqEntity)) flatMap { response =>
-          print(s"RESPONSEEEEE ${response.status}")
           Unmarshal(response).to[ScrapyRTResponse] map { scrapyResp =>
-            scrapyResp.items.map { item =>
-              Ibex35Historic.fromMap(item)
-            } foreach (print)
+            scrapyResp.items.map(Ibex35Historic.fromMap)
           }
         }
-      }
+      } map { items =>
+        IbexDataRetrieved(items)
+      } recover {
+        case e: Exception =>
+          log.error(s"Error retrieving data from Crawler: $e.")
+          CantRetrieveDataFromIbex35
+      } pipeTo (sender)
 
     case RetrieveIbexDataFrom(date) =>
 

@@ -13,7 +13,7 @@ case class ScrapyRTRequest(
 case class ScrapyRTResponse(
                            status: String,
                            spider_name: String,
-                           items: List[Map[String,String]]
+                           items: Seq[Map[String,String]]
                            )
 
 trait ScrapyRTDefaultProtocol extends SprayJsonSupport with DefaultJsonProtocol{
