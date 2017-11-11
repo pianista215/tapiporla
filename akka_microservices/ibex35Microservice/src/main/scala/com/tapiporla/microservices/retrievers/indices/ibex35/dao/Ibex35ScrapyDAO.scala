@@ -1,23 +1,20 @@
-package com.tapiporla.microservices.retrievers.indices.ibex35
-
-import java.util.Date
+package com.tapiporla.microservices.retrievers.indices.ibex35.dao
 
 import akka.actor.{Actor, ActorLogging}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshalling.Marshal
-import akka.http.scaladsl.model.{HttpMethods, HttpRequest, RequestEntity, ResponseEntity}
+import akka.http.scaladsl.model.{HttpMethods, HttpRequest, RequestEntity}
 import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.stream.ActorMaterializer
-import com.tapiporla.microservices.retrievers.common.{ScrapyRTDefaultProtocol, ScrapyRTRequest, ScrapyRTResponse}
-import com.tapiporla.microservices.retrievers.indices.ibex35.Ibex35CrawlerAPI.{CantRetrieveDataFromIbex35Crawler, IbexDataRetrieved, RetrieveAllIbexData, RetrieveIbexDataFrom}
-
-import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
 import akka.pattern.pipe
+import akka.stream.ActorMaterializer
+import com.tapiporla.microservices.retrievers.common.model.{ScrapyRTDefaultProtocol, ScrapyRTRequest, ScrapyRTResponse}
+import com.tapiporla.microservices.retrievers.indices.ibex35.dao.Ibex35ScrapyDAO.{CantRetrieveDataFromIbex35Crawler, IbexDataRetrieved, RetrieveAllIbexData, RetrieveIbexDataFrom}
+import com.tapiporla.microservices.retrievers.indices.ibex35.model.Ibex35Historic
 import org.joda.time.DateTime
 
-object Ibex35CrawlerAPI {
+import scala.concurrent.ExecutionContext.Implicits.global
+
+object Ibex35ScrapyDAO {
 
   object RetrieveAllIbexData
   case class RetrieveIbexDataFrom(date: DateTime)
@@ -29,7 +26,7 @@ object Ibex35CrawlerAPI {
 /**
   * In charge of retrieve data from the ScrapyRT endpoint
   */
-class Ibex35CrawlerAPI extends Actor with ActorLogging with ScrapyRTDefaultProtocol {
+class Ibex35ScrapyDAO extends Actor with ActorLogging with ScrapyRTDefaultProtocol {
 
   //TODO: Settings
   val endpoint = "http://localhost:9080/crawl.json"
@@ -65,8 +62,9 @@ class Ibex35CrawlerAPI extends Actor with ActorLogging with ScrapyRTDefaultProto
   private def buildRequest(fromDate: Option[DateTime] = None): ScrapyRTRequest = {
     fromDate map { date =>
       ScrapyRTRequest("ibex35", true, Map("lookup_until_date" -> date.toString("dd-MM-yyyy")))
-    } getOrElse
-      ScrapyRTRequest("ibex35", true, Map.empty)
+    } getOrElse //TODO: Remove limit NEXT
+      //ScrapyRTRequest("ibex35", true, Map.empty)
+      ScrapyRTRequest("ibex35", true, Map("lookup_until_date" -> "10-10-2017"))
   }
 
 }

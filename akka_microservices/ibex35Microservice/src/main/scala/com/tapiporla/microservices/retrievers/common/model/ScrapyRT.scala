@@ -1,4 +1,4 @@
-package com.tapiporla.microservices.retrievers.common
+package com.tapiporla.microservices.retrievers.common.model
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import spray.json.DefaultJsonProtocol

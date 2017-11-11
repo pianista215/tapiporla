@@ -21,10 +21,10 @@ import scala.concurrent.Future
 
 object ElasticDAO {
 
-  case class SaveInIndex(jsonDocs: Seq[String])
+  case class SaveInIndex(index: String, typeName: String, jsonDocs: Seq[String])
   case class ErrorSavingData(error: Exception, index: String, typeName: String, jsonDocs: Seq[String])
   case class DataSavedConfirmation(index: String, typeName: String, jsonDocs: Seq[String])
-  case class RetrieveAllFromIndexSorted(sort: Option[FieldSortDefinition], limit: Option[Int])
+  case class RetrieveAllFromIndexSorted(index: String, typeName: String, sort: Option[FieldSortDefinition], limit: Option[Int])
   case class DataRetrieved(index: String, typeName: String, data: RichSearchResponse)
   case class ErrorRetrievingData(error: Exception, index: String, typeName: String)
   object InitElasticDAO
@@ -44,11 +44,6 @@ trait ElasticDAO extends Actor with ActorLogging with Stash{
   val client = XPackElasticClient(settings, ElasticsearchClientUri("elasticsearch://localhost:9300"))
 
   def indexCreation: CreateIndexDefinition //Index to be created (if already exists we don't check if the mappings are similar)
-
-  def index: String
-
-  def typeName: String
-
 
   self ! InitElasticDAO
 
@@ -79,7 +74,7 @@ trait ElasticDAO extends Actor with ActorLogging with Stash{
 
   def readyToProcess: Receive = {
 
-    case SaveInIndex(jsonDocs) =>
+    case SaveInIndex(index, typeName, jsonDocs) =>
       client.execute {
         bulk (
           jsonDocs map (indexInto(index / typeName).doc(_))
@@ -93,7 +88,7 @@ trait ElasticDAO extends Actor with ActorLogging with Stash{
           ErrorSavingData(e, index, typeName, jsonDocs)
       } pipeTo(sender)
 
-    case RetrieveAllFromIndexSorted(sort, limitValue) =>
+    case RetrieveAllFromIndexSorted(index, typeName, sort, limitValue) =>
       client.execute {
         search(index / typeName) sortBy sort limit limitValue.getOrElse(0)
       } map { result =>
