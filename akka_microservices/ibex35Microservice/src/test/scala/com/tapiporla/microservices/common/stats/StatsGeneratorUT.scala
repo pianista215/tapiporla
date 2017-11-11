@@ -53,7 +53,7 @@ class StatsGeneratorUT extends FlatSpec with Matchers{
 
     example2 should have length(12)
 
-    val lastThree = (example2 drop 9)
+    val lastThree = example2 drop 9
 
     StatsGenerator.generateMM(example2, 10) should be (
       Seq(
@@ -62,6 +62,22 @@ class StatsGeneratorUT extends FlatSpec with Matchers{
         (lastThree.last._1, BigDecimal(15))
       )
     )
+
+    val lastEight = example2 drop 4
+
+    StatsGenerator.generateMM(example2, 5) should be (
+      Seq(
+        (lastEight.head._1, BigDecimal(6)), //2+4+6+8+10
+        (lastEight(1)._1, BigDecimal(8)),
+        (lastEight(2)._1, BigDecimal(10)),
+        (lastEight(3)._1, BigDecimal(12)),
+        (lastEight(4)._1, BigDecimal(14)),
+        (lastEight(5)._1, BigDecimal(16)),
+        (lastEight(6)._1, BigDecimal(18)),
+        (lastEight.last._1, BigDecimal(20))
+      )
+    )
+
   }
 
 }
