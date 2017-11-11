@@ -13,6 +13,8 @@ import scala.annotation.tailrec
   */
 object StatsGenerator {
 
+  type MMDefition = (String, Int)
+
   val MM200 = ("MM200", 200)
   val MM100 = ("MM100", 100)
   val MM40 = ("MM40", 40)

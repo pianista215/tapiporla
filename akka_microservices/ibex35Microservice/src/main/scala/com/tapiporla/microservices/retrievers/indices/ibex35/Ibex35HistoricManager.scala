@@ -46,6 +46,7 @@ class Ibex35HistoricManager extends Retriever with Stash {
       esDAO ! RetrieveAllFromIndexSorted(
         Ibex35ESDAO.index,
         Ibex35ESDAO.Historic.typeName,
+        None,
         Some(fieldSort(Ibex35ESDAO.date).order(SortOrder.DESC)),
         Some(1)
       )
