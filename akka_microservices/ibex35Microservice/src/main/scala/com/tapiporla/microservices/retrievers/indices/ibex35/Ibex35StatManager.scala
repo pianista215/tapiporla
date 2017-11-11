@@ -1,14 +1,17 @@
 package com.tapiporla.microservices.retrievers.indices.ibex35
 
 import akka.actor.{Actor, ActorLogging, Props, Stash}
+import com.sksamuel.elastic4s.ElasticDsl.fieldSort
 import com.tapiporla.microservices.retrievers.common.ElasticDAO.{DataRetrieved, ErrorRetrievingData, RetrieveAllFromIndexSorted}
+import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator
 import com.tapiporla.microservices.retrievers.indices.ibex35.Ibex35StatManager.{InitIbex35StatManager, ReadyToStart, UpdateStats}
 import com.tapiporla.microservices.retrievers.indices.ibex35.dao.Ibex35ESDAO
 import com.tapiporla.microservices.retrievers.indices.ibex35.model.Ibex35Stat
 import org.elasticsearch.search.sort.SortOrder
 import org.joda.time.DateTime
-import scala.concurrent.duration._
+
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 object Ibex35StatManager {
   object InitIbex35StatManager //Called after Ibex35HistoricManager is updated to avoid race conditions
@@ -64,7 +67,39 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
   def ready(lastUpdated: Option[DateTime]): Receive = {
 
     case UpdateStats =>
+      log.info(s"Time to update stats from Ibex35")
+      esDAO ! retrieveIbexHistoricFromDate(lastUpdated)
+      context.become(updating(lastUpdated, Seq()))
 
+  }
+
+  def updating(lastUpdated: Option[DateTime], lastPackageProcess: Seq[Ibex35Stat]): Receive = {
+
+    case DataRetrieved(index, typeName, data) =>
+      log.info(s"Get from $index / $typeName data: ${data.hits.length} documents")
+
+
+    case ErrorRetrievingData(ex, index, typeName) =>
+      //TODO: Encapsulate original message sent to resent
+      log.error(s"Can't get data from $index / $typeName, retrying in 30 seconds")
+      context.system.scheduler.scheduleOnce(30 seconds, self, retrieveIbexHistoricFromDate(lastUpdated))
+
+  }
+
+  private val CHUNKS_SIZE = StatsGenerator.START_ELEMENTS_RECOMMENDED
+
+  /**
+    * To avoid too much data from Database, we are going to process by steps the stats
+    * @param date
+    */
+  private def retrieveIbexHistoricFromDate(date: Option[DateTime]) = {
+    //TODO: Should the other actor retrieve data for us instead of going to ES directly??
+    RetrieveAllFromIndexSorted(
+      Ibex35ESDAO.index,
+      Ibex35ESDAO.Historic.typeName,
+      Some(fieldSort(Ibex35ESDAO.date).order(SortOrder.ASC)),
+      Some(CHUNKS_SIZE)
+    )
   }
 
 }

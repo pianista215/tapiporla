@@ -8,6 +8,7 @@ val akkaVersion = "2.4.19" //TODO: Upgrade to 2.5.6 where dependency conflicts a
 val akkaHttpVersion = "10.0.10"
 val elastic4sVersion = "5.6.0"
 val jodaTimeWrapper = "2.18.0"
+val scalaTestVersion = "3.0.4"
 
 libraryDependencies ++= Seq(
   //Akka
@@ -22,11 +23,19 @@ libraryDependencies ++= Seq(
   "com.sksamuel.elastic4s" %% "elastic4s-core" % elastic4sVersion,
   "com.sksamuel.elastic4s" %% "elastic4s-tcp" % elastic4sVersion,
   "com.sksamuel.elastic4s" %% "elastic4s-xpack-security" % elastic4sVersion,
-  "com.sksamuel.elastic4s" %% "elastic4s-testkit" % elastic4sVersion % "test",
-  "com.sksamuel.elastic4s" %% "elastic4s-embedded" % elastic4sVersion % "test",
+  "com.sksamuel.elastic4s" %% "elastic4s-testkit" % elastic4sVersion % Test,
+  "com.sksamuel.elastic4s" %% "elastic4s-embedded" % elastic4sVersion % Test,
 
   //Jodatime
-  "com.github.nscala-time" %% "nscala-time" % jodaTimeWrapper
+  "com.github.nscala-time" %% "nscala-time" % jodaTimeWrapper,
+
+  //Scalatest
+  "org.scalactic" %% "scalactic" % scalaTestVersion,
+  "org.scalatest" %% "scalatest" % scalaTestVersion % Test
+
 )
 
-resolvers += "elasticsearch-releases" at "https://artifacts.elastic.co/maven"
+resolvers ++= Seq(
+  "elasticsearch-releases" at "https://artifacts.elastic.co/maven",
+  "Artima Maven Repository" at "http://repo.artima.com/releases"
+)
