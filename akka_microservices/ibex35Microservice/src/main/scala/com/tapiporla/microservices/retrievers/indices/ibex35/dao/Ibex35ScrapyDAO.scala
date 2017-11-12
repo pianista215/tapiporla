@@ -4,6 +4,7 @@ import akka.actor.{Actor, ActorLogging}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.{HttpMethods, HttpRequest, RequestEntity}
+import akka.http.scaladsl.settings.ConnectionPoolSettings
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.pattern.pipe
 import akka.stream.ActorMaterializer
@@ -13,6 +14,7 @@ import com.tapiporla.microservices.retrievers.indices.ibex35.model.Ibex35Histori
 import org.joda.time.DateTime
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 object Ibex35ScrapyDAO {
 
@@ -46,7 +48,16 @@ class Ibex35ScrapyDAO extends Actor with ActorLogging with ScrapyRTDefaultProtoc
 
   private def retrieveIbexDataFrom(fromDate: Option[DateTime] = None) =
     Marshal(buildRequest(fromDate)).to[RequestEntity] flatMap { rqEntity =>
-      http.singleRequest(HttpRequest(method = HttpMethods.POST, uri = endpoint, entity = rqEntity)) flatMap { response =>
+      //TODO: TO SETTINGS.conf
+      val timeoutSettings =
+        ConnectionPoolSettings(context.system.settings.config).withIdleTimeout(10 minutes)
+
+      http.singleRequest(
+        HttpRequest(
+          method = HttpMethods.POST,
+          uri = endpoint,
+          entity = rqEntity
+        ), settings = timeoutSettings) flatMap { response =>
         Unmarshal(response).to[ScrapyRTResponse] map { scrapyResp =>
           scrapyResp.items.map(Ibex35Historic.fromMap)
         }
@@ -62,9 +73,9 @@ class Ibex35ScrapyDAO extends Actor with ActorLogging with ScrapyRTDefaultProtoc
   private def buildRequest(fromDate: Option[DateTime] = None): ScrapyRTRequest = {
     fromDate map { date =>
       ScrapyRTRequest("ibex35", true, Map("lookup_until_date" -> date.toString("dd-MM-yyyy")))
-    } getOrElse //TODO: Remove limit NEXT
-      //ScrapyRTRequest("ibex35", true, Map.empty)
-      ScrapyRTRequest("ibex35", true, Map("lookup_until_date" -> "10-10-2017"))
+    } getOrElse
+      ScrapyRTRequest("ibex35", true, Map.empty)
+      //ScrapyRTRequest("ibex35", true, Map("lookup_until_date" -> "10-10-2017"))
   }
 
 }

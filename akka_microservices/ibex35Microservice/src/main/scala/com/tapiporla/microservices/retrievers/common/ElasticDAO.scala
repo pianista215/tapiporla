@@ -97,7 +97,7 @@ trait ElasticDAO extends Actor with ActorLogging with Stash{
         case CausedBy(ex: ResourceAlreadyExistsException) => //TODO: Change to see how to check if index already exists
           ReadyToListen
         case e: Exception =>
-          log.error(s"Error initializing ElasticSearch DAO ${self.path.name} :$e. Trying again")
+          log.error(s"Error initializing ElasticSearch DAO ${self.path.name} :$e. Trying again") //TODO: Timeout before retrying
           InitElasticDAO
       } pipeTo (self)
 
