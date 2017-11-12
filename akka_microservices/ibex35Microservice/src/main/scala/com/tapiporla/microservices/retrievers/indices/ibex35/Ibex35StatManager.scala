@@ -1,14 +1,15 @@
 package com.tapiporla.microservices.retrievers.indices.ibex35
 
 import akka.actor.{Actor, ActorLogging, Props, Stash}
+import com.sksamuel.elastic4s.ElasticDsl.termQuery
 import com.sksamuel.elastic4s.searches.RichSearchResponse
 import com.sksamuel.elastic4s.searches.queries.term.TermQueryDefinition
-import com.tapiporla.microservices.retrievers.common.ElasticDAO.{DataRetrieved, ErrorRetrievingData, RetrieveAllFromIndexSorted}
+import com.tapiporla.microservices.retrievers.common.ElasticDAO._
 import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator
 import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator.MMDefition
 import com.tapiporla.microservices.retrievers.indices.ibex35.Ibex35StatManager.{CheckReadyToStart, InitIbex35StatManager, UpdateStats}
 import com.tapiporla.microservices.retrievers.indices.ibex35.dao.Ibex35ESDAO
-import com.tapiporla.microservices.retrievers.indices.ibex35.model.Ibex35Stat
+import com.tapiporla.microservices.retrievers.indices.ibex35.model.{Ibex35Historic, Ibex35Stat}
 import org.elasticsearch.search.sort.SortOrder
 import org.joda.time.DateTime
 
@@ -23,6 +24,9 @@ object Ibex35StatManager {
 
 /**
   * In charge of create stats on demand from the index
+  *
+  * The flow is: initial -> gettingInitialStatus -> waitingForDeletions -> ready -> updating -> ready...
+  *
   */
 class Ibex35StatManager extends Actor with ActorLogging with Stash {
 
@@ -36,7 +40,7 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
     case InitIbex35StatManager =>
       log.info("Recovering initial status")
 
-      //Recover MM***
+      //Recover MM*** status
       esDAO ! retrieveLastMMUpdated(StatsGenerator.MM200)
       esDAO ! retrieveLastMMUpdated(StatsGenerator.MM100)
       esDAO ! retrieveLastMMUpdated(StatsGenerator.MM40)
@@ -92,17 +96,18 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
         unstashAll()
         val retrievedDates = lastMM200._2 ++ lastMM100._2 ++ lastMM40._2 ++ lastMM20._2 toSeq
 
-        //TODO: Remove inconsistent stats
-        if(retrievedDates.length == 4) {
-          val consistentDate = lastConsistentDate(retrievedDates)
-          log.info(s"Recovered lastUpdate: $consistentDate, starting to listen")
-          self ! UpdateStats //Autostart creating stats
-          context.become(ready(Some(consistentDate)))
-        } else {
-          log.info("No consistent date found. Starting creating stats from scratch")
-          self ! UpdateStats
-          context.become(ready(None))
-        }
+        log.info("Retrieved last updated fields")
+
+        val consistentDate =
+          if(retrievedDates.length == 4)
+            Some(lastConsistentDate(retrievedDates))
+          else
+            None
+
+        //Remove inconsistent data
+        log.info(s"Starting deletions of inconsistent data from: $consistentDate")
+        esDAO ! deleteStatsOlderThan(consistentDate)
+        context.become(waitingForDeletions(consistentDate))
 
       } else
         log.info(s"Not ready to start. Stats recovered: MM200:${lastMM200._1} MM100:${lastMM100._1} MM40:${lastMM40._1} MM20:${lastMM20._1}")
@@ -111,6 +116,21 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
     case _ =>
       stash()
 
+  }
+
+  def waitingForDeletions(consistentDate: Option[DateTime]): Receive = {
+
+    case DeleteConfirmation(index, typeName, _) =>
+      log.info(s"Successfully removed inconsistent Stats in $index / $typeName, newer than: $consistentDate")
+      self ! UpdateStats
+      context.become(ready(consistentDate))
+
+    case ErrorDeletingData(ex, index, typeName, rq) =>
+      log.error(s"Can't delete data from $index / $typeName retrying in 30 seconds due to: $ex")
+      context.system.scheduler.scheduleOnce(30 seconds, esDAO, rq)
+
+    case _ =>
+      stash()
   }
 
   def ready(lastUpdated: Option[DateTime]): Receive = {
@@ -126,13 +146,39 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
 
   def updating(lastUpdated: Option[DateTime], lastPackageProcess: Seq[Ibex35Stat]): Receive = {
 
-    case DataRetrieved(index, typeName, data, rq) =>
+    case DataRetrieved(index, typeName, data, _) =>
       log.info(s"Get from $index / $typeName data: ${data.hits.length} documents")
+
+      //TODO: Package and historic processing and mixing to get good stats
+      if(data.hits.nonEmpty) {
+        val stats: Seq[Ibex35Stat] =
+          StatsGenerator.generateStatsFor(
+            data.hits.map(Ibex35Historic.fromHit).map(x => (x.date, x.closeValue))
+          ) map {stat => Ibex35Stat(stat._1, stat._2, stat._3)}
+
+        esDAO ! SaveInIndex(Ibex35ESDAO.index, Ibex35ESDAO.Stats.typeName, stats)
+      } else {
+        log.error("No data to be updated. Check if new data is being retrieved correctly. Moving to ready")
+        context.become(ready(lastUpdated))
+      }
+
+
+
 
 
     case ErrorRetrievingData(ex, index, typeName, rq) =>
-      log.error(s"Can't get data from $index / $typeName, retrying in 30 seconds")
-      context.system.scheduler.scheduleOnce(30 seconds, self, rq)
+      log.error(s"Can't get data from $index / $typeName, retrying in 30 seconds due to: $ex")
+      context.system.scheduler.scheduleOnce(30 seconds, esDAO, rq)
+
+    case ErrorSavingData(ex, index, typeName, data) =>
+      log.error(s"Can't save data in $index / $typeName, retrying in 30 seconds: $ex")
+      context.system.scheduler.scheduleOnce(30 seconds, esDAO, SaveInIndex(index,typeName,data))
+
+    case DataSavedConfirmation(index, typeName, data) =>
+      log.info(s"Saved stats correctly in ES ($index / $typeName): ${data.length} documents")
+      val dateUpdated = data.last.asInstanceOf[Ibex35Stat].date
+      log.info(s"Being ready with date of stats generated: $dateUpdated")
+      context.become(ready(Some(dateUpdated)))
 
     case _ =>
       log.error("Unknown message while updating")
@@ -171,6 +217,23 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
       Some(fieldSort(Ibex35ESDAO.date).order(SortOrder.DESC)),
       Some(1)
     )
+
+  /**
+    * Generate messages of deletion
+    * @param date
+    * @return
+    */
+  private def deleteStatsOlderThan(date: Option[DateTime]): DeleteFromIndex = {
+    val deleteQuery = date map { consistentDate =>
+      rangeQuery(Ibex35ESDAO.date) gt consistentDate.toString
+    }
+
+    DeleteFromIndex(
+      Ibex35ESDAO.index,
+      Ibex35ESDAO.Stats.typeName,
+      deleteQuery
+    )
+  }
 
   /**
     * Get the date where all the stats were consistent

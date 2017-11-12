@@ -10,6 +10,7 @@ import com.sksamuel.elastic4s.searches.queries.QueryDefinition
 import com.sksamuel.elastic4s.searches.sort.FieldSortDefinition
 import com.sksamuel.elastic4s.xpack.security.XPackElasticClient
 import com.tapiporla.microservices.retrievers.common.ElasticDAO._
+import com.tapiporla.microservices.retrievers.common.model.ElasticDocumentInsertable
 import org.elasticsearch.ResourceAlreadyExistsException
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy
 import org.elasticsearch.common.settings.Settings
@@ -18,16 +19,31 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 object ElasticDAO {
 
-  case class SaveInIndex(index: String, typeName: String, jsonDocs: Seq[String])
+  case class SaveInIndex(index: String, typeName: String, jsonDocs: Seq[ElasticDocumentInsertable])
 
   case class ErrorSavingData(
                               error: Exception,
                               index: String,
                               typeName: String,
-                              jsonDocs: Seq[String]
+                              jsonDocs: Seq[ElasticDocumentInsertable]
                             )
 
-  case class DataSavedConfirmation(index: String, typeName: String, jsonDocs: Seq[String])
+  case class DataSavedConfirmation(index: String, typeName: String, jsonDocs: Seq[ElasticDocumentInsertable])
+
+  case class DeleteFromIndex(
+                              index: String,
+                              typeName: String,
+                              where: Option[QueryDefinition] = None
+                            )
+
+  case class ErrorDeletingData(
+                              error: Exception,
+                              index: String,
+                              typeName: String,
+                              originalRQ: DeleteFromIndex
+                              )
+
+  case class DeleteConfirmation(index: String, typeName: String, originalRQ: DeleteFromIndex)
 
   case class RetrieveAllFromIndexSorted(
                                          index: String,
@@ -100,7 +116,7 @@ trait ElasticDAO extends Actor with ActorLogging with Stash{
     case SaveInIndex(index, typeName, jsonDocs) =>
       client.execute {
         bulk (
-          jsonDocs map (indexInto(index / typeName).doc(_))
+          jsonDocs.map(x => indexInto(index / typeName).doc(x.json))
         ) refresh(RefreshPolicy.WAIT_UNTIL)
       } map { _=>
         log.info(s"Completed to save in ES index $index type $typeName: ${jsonDocs.length} docs")
@@ -125,6 +141,23 @@ trait ElasticDAO extends Actor with ActorLogging with Stash{
         case e: Exception =>
           log.error(s"Impossible to retrieve from index $index $typeName all sorted: $e")
           ErrorRetrievingData(e, index, typeName, rq)
+      } pipeTo(sender)
+
+    case rq @ DeleteFromIndex(index, typeName, where) =>
+      client.execute {
+
+        where map { whereQuery =>
+          deleteIn(index / typeName).by(whereQuery)
+        } getOrElse
+          deleteIn(index / typeName).by(matchAllQuery())
+
+      } map { _ =>
+        log.info(s"Deleted confirmation in ES $index / $typeName")
+        DeleteConfirmation(index, typeName, rq)
+      } recover {
+        case e: Exception =>
+          log.error(s"Impossible to delete in index $index $typeName: $e")
+          ErrorDeletingData(e, index, typeName, rq)
       } pipeTo(sender)
 
     case _ =>

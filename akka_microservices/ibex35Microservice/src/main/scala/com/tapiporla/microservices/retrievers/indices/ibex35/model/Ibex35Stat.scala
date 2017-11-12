@@ -2,6 +2,7 @@ package com.tapiporla.microservices.retrievers.indices.ibex35.model
 
 import com.github.nscala_time.time.Imports._
 import com.sksamuel.elastic4s.Hit
+import com.tapiporla.microservices.retrievers.common.model.ElasticDocumentInsertable
 import com.tapiporla.microservices.retrievers.indices.ibex35.dao.Ibex35ESDAO
 
 object Ibex35Stat {
@@ -11,14 +12,6 @@ object Ibex35Stat {
       map(Ibex35ESDAO.Stats.statsAttr),
       BigDecimal(map(Ibex35ESDAO.Stats.statsValue))
     )
-  }
-
-  def json(t: Ibex35Stat): String = {
-    s""" {
-       |"${Ibex35ESDAO.date}" : "${t.date}",
-       |"${Ibex35ESDAO.Stats.statsAttr}" : "${t.statAttr}",
-       |"${Ibex35ESDAO.Stats.statsValue}" : "${t.statValue}"
-       |} """.stripMargin
   }
 
   def fromHit(t: Hit): Ibex35Stat = {
@@ -32,7 +25,17 @@ object Ibex35Stat {
 }
 
 case class Ibex35Stat(
-                           date: DateTime,
-                           statAttr: String,
-                           statValue: BigDecimal
-                         )
+                       date: DateTime,
+                       statAttr: String,
+                       statValue: BigDecimal
+                     ) extends ElasticDocumentInsertable {
+
+  override def json: String = {
+    s""" {
+       |"${Ibex35ESDAO.date}" : "$date",
+       |"${Ibex35ESDAO.Stats.statsAttr}" : "$statAttr",
+       |"${Ibex35ESDAO.Stats.statsValue}" : "$statValue"
+       |} """.stripMargin
+  }
+
+}

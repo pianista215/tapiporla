@@ -51,7 +51,7 @@ class Ibex35HistoricManager extends Retriever with Stash {
         Some(1)
       )
 
-    case DataRetrieved(index, typeName, data) =>
+    case DataRetrieved(index, typeName, data, _) =>
       if(data.isEmpty) {
         log.info("Starting without initial date")
         self ! ReadyToStart(None)
@@ -60,9 +60,9 @@ class Ibex35HistoricManager extends Retriever with Stash {
         self ! ReadyToStart(Some(Ibex35Historic.fromHit(data.hits.head).date))
       }
 
-    case ErrorRetrievingData(ex, index, typeName) =>
+    case ErrorRetrievingData(ex, index, typeName, originalRQ) =>
       log.error(s"Can't get initial status from $index / $typeName, retrying in 30 seconds")
-      context.system.scheduler.scheduleOnce(30 seconds, self, InitIbex35Coordinator)
+      context.system.scheduler.scheduleOnce(30 seconds, esDAO, originalRQ)
 
 
     case ReadyToStart(lastUpdated) =>
@@ -92,7 +92,7 @@ class Ibex35HistoricManager extends Retriever with Stash {
         esDAO ! SaveInIndex(
           Ibex35ESDAO.index,
           Ibex35ESDAO.Historic.typeName,
-          historicData.map(Ibex35Historic.json)
+          historicData
         )
         val lastDate = historicData.maxBy(_.date.toString).date
         log.info(s"LastUpdated is now $lastDate")
