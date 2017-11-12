@@ -144,25 +144,29 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
       log.error("Unknown message while ready")
   }
 
-  def updating(lastUpdated: Option[DateTime], lastPackageProcess: Seq[Ibex35Stat]): Receive = {
+  def updating(lastUpdated: Option[DateTime], lastPackageProcess: Seq[Ibex35Historic]): Receive = {
 
     case DataRetrieved(index, typeName, data, _) =>
       log.info(s"Get from $index / $typeName data: ${data.hits.length} documents")
 
-      //TODO: Package and historic processing and mixing to get good stats
       if(data.hits.nonEmpty) {
+        val ibex35HistoricRetrieved = data.hits.map(Ibex35Historic.fromHit)
+
         val stats: Seq[Ibex35Stat] =
           StatsGenerator.generateStatsFor(
-            data.hits.map(Ibex35Historic.fromHit).map(x => (x.date, x.closeValue))
+            ibex35HistoricRetrieved.map(x => (x.date, x.closeValue)),
+            lastPackageProcess.map(x => (x.date, x.closeValue))
           ) map {stat => Ibex35Stat(stat._1, stat._2, stat._3)}
 
+        val updatedDate = stats.last.date
+
+        log.info(s"Saving stats updated until: $updatedDate")
         esDAO ! SaveInIndex(Ibex35ESDAO.index, Ibex35ESDAO.Stats.typeName, stats)
+        context.become(updating(Some(updatedDate), ibex35HistoricRetrieved))
       } else {
-        log.error("No data to be updated. Check if new data is being retrieved correctly. Moving to ready")
+        log.error(s"No data to be updated from $index. Check if new data is being retrieved correctly. Moving to ready")
         context.become(ready(lastUpdated))
       }
-
-
 
 
 
@@ -176,9 +180,13 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
 
     case DataSavedConfirmation(index, typeName, data) =>
       log.info(s"Saved stats correctly in ES ($index / $typeName): ${data.length} documents")
-      val dateUpdated = data.last.asInstanceOf[Ibex35Stat].date
-      log.info(s"Being ready with date of stats generated: $dateUpdated")
-      context.become(ready(Some(dateUpdated)))
+      if(data.length < CHUNKS_SIZE) {
+        log.info(s"Being ready with date of stats generated: $lastUpdated")
+        context.become(ready(lastUpdated))
+      } else { //Continue generating Stats
+        log.info(s"We have more data to generate stats. Continue updating stats from: $lastUpdated")
+        esDAO ! retrieveIbexHistoricFromDate(lastUpdated)
+      }
 
     case _ =>
       log.error("Unknown message while updating")
@@ -193,11 +201,11 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
     * @param date
     */
   private def retrieveIbexHistoricFromDate(date: Option[DateTime]) =
-    //TODO: Should the other actor retrieve data for us instead of going to ES directly??
+
     RetrieveAllFromIndexSorted(
       Ibex35ESDAO.index,
       Ibex35ESDAO.Historic.typeName,
-      None,
+      date map {dt => rangeQuery(Ibex35ESDAO.date) gt dt.toString},
       Some(fieldSort(Ibex35ESDAO.date).order(SortOrder.ASC)),
       Some(CHUNKS_SIZE)
     )

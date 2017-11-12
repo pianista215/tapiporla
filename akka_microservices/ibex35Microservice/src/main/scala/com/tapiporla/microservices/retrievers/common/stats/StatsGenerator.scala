@@ -26,25 +26,35 @@ object StatsGenerator {
   type Stat = (DateTime, String, BigDecimal)
   type Data = (DateTime, BigDecimal)
 
-  def generateStatsFor(data: Seq[Data]): Seq[Stat] =
-    generateMM200From(data) ++
-      generateMM100From(data) ++
-      generateMM40From(data) ++
-      generateMM20From(data)
+  /**
+    * It will generate Stats using the previous data if needed
+    * @param data
+    * @param previousData
+    * @return
+    */
+  def generateStatsFor(data: Seq[Data], previousData: Seq[Data]): Seq[Stat] = {
+    val dataByDate = data.sortBy(_._1.toDate)
+    val previousByDate = data.sortBy(_._1.toDate)
 
-  def generateMM200From(data: Seq[Data]): Seq[Stat] =
-    generateMM(data, MM200._2) map {item => (item._1, MM200._1, item._2)}
+    generateMM200From(dataByDate, previousByDate takeRight MM200._2 - 1) ++
+      generateMM100From(dataByDate, previousByDate takeRight MM100._2 -1) ++
+      generateMM40From(dataByDate, previousByDate takeRight MM40._2 - 1) ++
+      generateMM20From(dataByDate, previousByDate takeRight MM20._2 -1)
+  }
 
-  def generateMM100From(data: Seq[Data]): Seq[Stat] =
-    generateMM(data, MM100._2) map {item => (item._1, MM100._1, item._2)}
+  def generateMM200From(data: Seq[Data], previousData: Seq[Data]): Seq[Stat] =
+    generateMM(data, previousData, MM200._2) map {item => (item._1, MM200._1, item._2)}
 
-  def generateMM40From(data: Seq[Data]): Seq[Stat] =
-    generateMM(data, MM40._2) map {item => (item._1, MM40._1, item._2)}
+  def generateMM100From(data: Seq[Data], previousData: Seq[Data]): Seq[Stat] =
+    generateMM(data, previousData, MM100._2) map {item => (item._1, MM100._1, item._2)}
 
-  def generateMM20From(data: Seq[Data]): Seq[Stat] =
-    generateMM(data, MM20._2) map {item => (item._1, MM20._1, item._2)}
+  def generateMM40From(data: Seq[Data], previousData: Seq[Data]): Seq[Stat] =
+    generateMM(data, previousData, MM40._2) map {item => (item._1, MM40._1, item._2)}
 
-  def generateMM(initial: Seq[Data], number: Int): Seq[Data] = {
+  def generateMM20From(data: Seq[Data], previousData: Seq[Data]): Seq[Stat] =
+    generateMM(data, previousData, MM20._2) map {item => (item._1, MM20._1, item._2)}
+
+  def generateMM(initial: Seq[Data], previousData: Seq[Data], number: Int): Seq[Data] = {
 
     @tailrec
     def helper(pending: Seq[Data], passed: Seq[Data], accum: Seq[Data]): Seq[Data] = {
@@ -65,8 +75,10 @@ object StatsGenerator {
 
     }
 
-    val sortedByDate = initial.sortBy(_._1.toDate)
-    helper(sortedByDate drop number - 1, sortedByDate take number - 1, Seq())
+    //Complete first chunk (Without enough data, to compute the means, it should be > 0 only in the first iteration of the APP)
+    val remainingToCompleteChunk = number - 1 - previousData.length
+    //TODO: Log warning
+    helper(initial drop remainingToCompleteChunk, previousData ++ (initial take remainingToCompleteChunk), Seq())
   }
 
   def mean(data: Seq[BigDecimal]): BigDecimal =
