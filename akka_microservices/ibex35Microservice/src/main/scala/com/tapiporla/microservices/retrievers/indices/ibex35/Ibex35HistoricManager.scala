@@ -2,7 +2,7 @@ package com.tapiporla.microservices.retrievers.indices.ibex35
 
 import akka.actor.{Props, Stash}
 import com.tapiporla.microservices.retrievers.common.{ElasticDAO, Retriever}
-import com.tapiporla.microservices.retrievers.common.Retriever.UpdateData
+import com.tapiporla.microservices.retrievers.common.Retriever.UpdateHistoricData
 import com.tapiporla.microservices.retrievers.common.ElasticDAO._
 import com.tapiporla.microservices.retrievers.indices.ibex35.Ibex35HistoricManager.{InitIbex35Coordinator, ReadyToStart, UpdateComplete}
 import com.tapiporla.microservices.retrievers.indices.ibex35.dao.Ibex35ScrapyDAO.{CantRetrieveDataFromIbex35Crawler, IbexDataRetrieved, RetrieveAllIbexData, RetrieveIbexDataFrom}
@@ -68,7 +68,7 @@ class Ibex35HistoricManager extends Retriever with Stash {
     case ReadyToStart(lastUpdated) =>
       unstashAll()
       log.info(s"Recovered lastUpdate: $lastUpdated, starting to listen")
-      self ! UpdateData //Auto start updating data
+      self ! UpdateHistoricData //Auto start updating data
       context.become(ready(lastUpdated))
 
     case _ =>
@@ -77,7 +77,7 @@ class Ibex35HistoricManager extends Retriever with Stash {
 
   def ready(lastUpdated: Option[DateTime]): Receive = {
 
-    case UpdateData =>
+    case UpdateHistoricData =>
       log.info(s"Time to update historic data from Ibex35")
       lastUpdated map { date =>
         scrapyDAO ! RetrieveIbexDataFrom(date)
@@ -102,7 +102,7 @@ class Ibex35HistoricManager extends Retriever with Stash {
 
     case CantRetrieveDataFromIbex35Crawler =>
       log.info("Cant retrieve from Crawler Ibex35 data, will try in 30 seconds")
-      context.system.scheduler.scheduleOnce(30 seconds, self, UpdateData)
+      context.system.scheduler.scheduleOnce(30 seconds, self, UpdateHistoricData)
 
     case ErrorSavingData(ex, index, typeName, data) =>
       log.info(s"Retrying to save ES in $index / $typeName after $ex in 30 seconds") //TODO: CQRS????

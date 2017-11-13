@@ -7,7 +7,7 @@ import com.sksamuel.elastic4s.searches.queries.term.TermQueryDefinition
 import com.tapiporla.microservices.retrievers.common.ElasticDAO._
 import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator
 import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator.MMDefition
-import com.tapiporla.microservices.retrievers.indices.ibex35.Ibex35StatManager.{CheckReadyToStart, InitIbex35StatManager, UpdateStats}
+import com.tapiporla.microservices.retrievers.indices.ibex35.Ibex35StatManager.{CheckReadyToStart, InitIbex35StatManager, UpdateStats, StatsUpdatedSuccessfully}
 import com.tapiporla.microservices.retrievers.indices.ibex35.dao.Ibex35ESDAO
 import com.tapiporla.microservices.retrievers.indices.ibex35.model.{Ibex35Historic, Ibex35Stat}
 import org.elasticsearch.search.sort.SortOrder
@@ -20,6 +20,7 @@ object Ibex35StatManager {
   object InitIbex35StatManager //Called after Ibex35HistoricManager is updated to avoid race conditions
   object UpdateStats //Called to Update stats (after Ibex35HistoricManager has inserted new data)
   object CheckReadyToStart //Called to check if we have all the data needed to Start the manager
+  object StatsUpdatedSuccessfully //When stats has been generated succesfully
 }
 
 /**
@@ -166,6 +167,7 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
       } else {
         log.error(s"No data to be updated from $index. Check if new data is being retrieved correctly. Moving to ready")
         context.become(ready(lastUpdated))
+        context.parent ! StatsUpdatedSuccessfully
       }
 
 
@@ -183,6 +185,7 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
       if(data.length < CHUNKS_SIZE) {
         log.info(s"Being ready with date of stats generated: $lastUpdated")
         context.become(ready(lastUpdated))
+        context.parent ! StatsUpdatedSuccessfully
       } else { //Continue generating Stats
         log.info(s"We have more data to generate stats. Continue updating stats from: $lastUpdated")
         esDAO ! retrieveIbexHistoricFromDate(lastUpdated)

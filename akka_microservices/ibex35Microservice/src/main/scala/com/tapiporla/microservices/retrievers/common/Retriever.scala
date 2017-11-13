@@ -4,9 +4,7 @@ import akka.actor.{Actor, ActorLogging}
 
 
 object Retriever {
-  object UpdateData //Used to keep data updated
-  case class UpdatedOK() //Used to confirm the update
-  case class UpdatedError(msg: String) //Used to send errors to the caller
+  object UpdateHistoricData //Used to keep data updated
 }
 
 
