@@ -19,7 +19,7 @@ scrapy crawl ibex35 -a lookup_until_date="29-05-2017"
 
 #Docker support
 In order to embed that using Docker (and getting the passing parameters functionality already implemented as a patch in ScrapyRT) use:
-sudo docker run --rm -p 9080:9080 pianista215/ibex35:0.1.0
+sudo docker run --rm -p 9080:9080 pianista215/ibex35_elEconomista:0.1.0
 
 (We need to improve the logs mounting, as it will be stored in the root project, so be aware of that)
 
