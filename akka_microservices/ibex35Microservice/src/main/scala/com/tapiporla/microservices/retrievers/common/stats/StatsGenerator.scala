@@ -1,6 +1,8 @@
 package com.tapiporla.microservices.retrievers.common.stats
 
+import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.DateTime
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.annotation.tailrec
 
@@ -11,7 +13,7 @@ import scala.annotation.tailrec
   * MM40
   * MM10
   */
-object StatsGenerator {
+object StatsGenerator extends LazyLogging{
 
   type MMDefition = (String, Int)
 
@@ -78,7 +80,8 @@ object StatsGenerator {
 
     //Complete first chunk (Without enough data, to compute the means, it should be > 0 only in the first iteration of the APP)
     val remainingToCompleteChunk = number - 1 - previousData.length
-    //TODO: Log warning
+    if(remainingToCompleteChunk > 0)
+      logger.warn("Warning, there are not enough previous data to compute the mean (If you are seeing that in the first iteration of the stats. Ignore it)")
     helper(initial drop remainingToCompleteChunk, previousData ++ (initial take remainingToCompleteChunk), Seq())
   }
 

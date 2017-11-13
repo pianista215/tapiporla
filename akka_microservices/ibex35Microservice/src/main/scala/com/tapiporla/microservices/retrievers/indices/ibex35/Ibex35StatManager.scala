@@ -155,9 +155,9 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
 
         val stats: Seq[Ibex35Stat] =
           StatsGenerator.generateStatsFor(
-            ibex35HistoricRetrieved.map(x => (x.date, x.closeValue)),
-            lastPackageProcess.map(x => (x.date, x.closeValue))
-          ) map {stat => Ibex35Stat(stat._1, stat._2, stat._3)}
+            ibex35HistoricRetrieved.map(_.toStatInputData),
+            lastPackageProcess.map(_.toStatInputData)
+          ) map Ibex35Stat.fromStat
 
         val updatedDate = stats.last.date
 

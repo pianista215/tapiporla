@@ -10,6 +10,7 @@ val elastic4sVersion = "5.6.0"
 val jodaTimeWrapper = "2.18.0"
 val scalaTestVersion = "3.0.4"
 val logbackVersion = "1.2.3"
+val typeSafeLogging = "3.7.2"
 
 libraryDependencies ++= Seq(
   //Akka
@@ -39,7 +40,10 @@ libraryDependencies ++= Seq(
   "org.scalatest" %% "scalatest" % scalaTestVersion % Test,
 
   //Logback
-  "ch.qos.logback" % "logback-classic" % logbackVersion % Runtime
+  "ch.qos.logback" % "logback-classic" % logbackVersion % Runtime,
+
+  //Typesafe logging
+  "com.typesafe.scala-logging" %% "scala-logging" % typeSafeLogging
 )
 
 resolvers ++= Seq(

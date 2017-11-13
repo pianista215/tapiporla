@@ -2,7 +2,8 @@ package com.tapiporla.microservices.retrievers.indices.ibex35.model
 
 import com.github.nscala_time.time.Imports._
 import com.sksamuel.elastic4s.Hit
-import com.tapiporla.microservices.retrievers.common.model.ElasticDocumentInsertable
+import com.tapiporla.microservices.retrievers.common.model.{DataInputExtractable, ElasticDocumentInsertable}
+import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator.Data
 import com.tapiporla.microservices.retrievers.indices.ibex35.dao.Ibex35ESDAO
 
 object Ibex35Historic {
@@ -37,7 +38,7 @@ case class Ibex35Historic(
                            minValue: BigDecimal,
                            maxValue: BigDecimal,
                            volume: BigDecimal
-                         ) extends ElasticDocumentInsertable {
+                         ) extends ElasticDocumentInsertable with DataInputExtractable{
 
   override def json: String = {
     s""" {
@@ -49,5 +50,8 @@ case class Ibex35Historic(
        |"${Ibex35ESDAO.Historic.volume}" : "$volume"
        |} """.stripMargin
   }
+
+  override def toStatInputData: Data =
+    (date, closeValue)
 
 }
