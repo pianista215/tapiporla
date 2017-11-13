@@ -8,13 +8,15 @@ class Ibex35Spider(scrapy.Spider):
 
     lookup_until_date = None
 
+    parameters = None
+
     nextPage = 0
 
     start_urls = [
         "http://www.infomercados.com/cotizaciones/historico/ibex-35-i%20ib/"
     ]
 
-    __allowed = ("lookup_until_date")
+    __allowed = ("parameters")
 
     def __init__(self, lookup_until_date=None, *args, **kwargs):
         super(Ibex35Spider, self).__init__(*args, **kwargs)
@@ -26,11 +28,14 @@ class Ibex35Spider(scrapy.Spider):
         if lookup_until_date is not None:
             self.lookup_until_date = dt.strptime(lookup_until_date, "%d-%m-%Y")
 
+        if 'lookup_until_date' in self.parameters:
+            self.lookup_until_date = dt.strptime(self.parameters['lookup_until_date'], "%d-%m-%Y")
+
     def parseDatetimeInfoMercado(self,string): 
         return dt.strptime(string, "%d/%m/%Y")
 
-    def parseFloat(self, string):
-        return float(string.replace(".","").replace(",","."))
+    def strFloat(self, string):
+        return string.replace(".","").replace(",",".")
 
     def is_date(self,string):
         try:
@@ -41,6 +46,8 @@ class Ibex35Spider(scrapy.Spider):
 
 
     def parse(self, response):
+        self.logger.info(self.parameters)
+
         self.nextPage = self.nextPage + 1
         emptyPage = True
         validIbexRow = False
@@ -73,15 +80,15 @@ class Ibex35Spider(scrapy.Spider):
                         
                 elif validIbexRow:
                     if col_num == 1:
-                        opening_value = self.parseFloat(col_value)
+                        opening_value = self.strFloat(col_value)
                     elif col_num == 2: 
-                        max_value = self.parseFloat(col_value)
+                        max_value = self.strFloat(col_value)
                     elif col_num == 3:
-                        min_value = self.parseFloat(col_value)
+                        min_value = self.strFloat(col_value)
                     elif col_num == 4:
-                        close_value = self.parseFloat(col_value)
+                        close_value = self.strFloat(col_value)
                     elif col_num == 5:
-                        volume = self.parseFloat(col_value)
+                        volume = self.strFloat(col_value)
 
             if validIbexRow and not found_limit:
                 emptyPage = False
