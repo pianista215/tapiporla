@@ -105,7 +105,8 @@ class Ibex35HistoricManager extends Retriever with Stash {
       context.system.scheduler.scheduleOnce(30 seconds, self, UpdateHistoricData)
 
     case ErrorSavingData(ex, index, typeName, data) =>
-      log.info(s"Retrying to save ES in $index / $typeName after $ex in 30 seconds") //TODO: CQRS????
+      //We are just saving one by one, never two SaveOperations are happening in the same actor at the same time
+      log.info(s"Retrying to save ES in $index / $typeName after $ex in 30 seconds")
       context.system.scheduler.scheduleOnce(30 seconds, esDAO, SaveInIndex(index, typeName, data))
 
     case DataSavedConfirmation(index, typeName, data) =>

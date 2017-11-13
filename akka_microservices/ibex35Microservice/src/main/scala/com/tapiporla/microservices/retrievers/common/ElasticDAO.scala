@@ -9,6 +9,7 @@ import com.sksamuel.elastic4s.searches.RichSearchResponse
 import com.sksamuel.elastic4s.searches.queries.QueryDefinition
 import com.sksamuel.elastic4s.searches.sort.FieldSortDefinition
 import com.sksamuel.elastic4s.xpack.security.XPackElasticClient
+import com.tapiporla.microservices.retrievers.CausedBy
 import com.tapiporla.microservices.retrievers.common.ElasticDAO._
 import com.tapiporla.microservices.retrievers.common.model.ElasticDocumentInsertable
 import org.elasticsearch.ResourceAlreadyExistsException
@@ -16,6 +17,7 @@ import org.elasticsearch.action.support.WriteRequest.RefreshPolicy
 import org.elasticsearch.common.settings.Settings
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration._
 
 object ElasticDAO {
 
@@ -67,15 +69,15 @@ object ElasticDAO {
                                 )
 
   object InitElasticDAO
+  case class ProblemConnectingWithES(e: Exception)
   object ReadyToListen
 
-  object CausedBy { //TODO: Move to package.scala
-    def unapply(e: Throwable): Option[Throwable] = Option(e.getCause)
-  }
+  private val settings = Settings.builder()
+    .put("cluster.name", TapiporlaConfig.ElasticSearch.clusterName)
+    .put("xpack.security.user", TapiporlaConfig.ElasticSearch.authUser)
+    .build()
 
-  //TODO: To settings
-  val settings = Settings.builder().put("cluster.name", "docker-cluster").put("xpack.security.user", "elastic:changeme").build()
-  val client = XPackElasticClient(settings, ElasticsearchClientUri("elasticsearch://localhost:9300"))
+  val client = XPackElasticClient(settings, ElasticsearchClientUri(TapiporlaConfig.ElasticSearch.endpoint))
 
 }
 
@@ -97,9 +99,14 @@ trait ElasticDAO extends Actor with ActorLogging with Stash{
         case CausedBy(ex: ResourceAlreadyExistsException) => //TODO: Change to see how to check if index already exists
           ReadyToListen
         case e: Exception =>
-          log.error(s"Error initializing ElasticSearch DAO ${self.path.name} :$e. Trying again") //TODO: Timeout before retrying
-          InitElasticDAO
+          ProblemConnectingWithES(e)
+
       } pipeTo (self)
+
+
+    case ProblemConnectingWithES(e) =>
+      log.error(s"Error initializing ElasticSearch DAO ${self.path.name} :$e. Trying again in 30 seconds")
+      context.system.scheduler.scheduleOnce(30 seconds, self, InitElasticDAO)
 
 
     case ReadyToListen =>

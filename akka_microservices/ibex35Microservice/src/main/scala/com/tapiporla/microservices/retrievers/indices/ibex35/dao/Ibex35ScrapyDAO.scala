@@ -8,6 +8,7 @@ import akka.http.scaladsl.settings.ConnectionPoolSettings
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.pattern.pipe
 import akka.stream.ActorMaterializer
+import com.tapiporla.microservices.retrievers.common.TapiporlaConfig
 import com.tapiporla.microservices.retrievers.common.model.{ScrapyRTDefaultProtocol, ScrapyRTRequest, ScrapyRTResponse}
 import com.tapiporla.microservices.retrievers.indices.ibex35.dao.Ibex35ScrapyDAO.{CantRetrieveDataFromIbex35Crawler, IbexDataRetrieved, RetrieveAllIbexData, RetrieveIbexDataFrom}
 import com.tapiporla.microservices.retrievers.indices.ibex35.model.Ibex35Historic
@@ -30,14 +31,13 @@ object Ibex35ScrapyDAO {
   */
 class Ibex35ScrapyDAO extends Actor with ActorLogging with ScrapyRTDefaultProtocol {
 
-  //TODO: Settings
-  val endpoint = "http://localhost:9080/crawl.json"
+  val endpoint = TapiporlaConfig.ScrapyRT.endpoint
   val http = Http(context.system)
   implicit val materializer: ActorMaterializer = ActorMaterializer()
 
   def receive = {
 
-    case RetrieveAllIbexData => //TODO: Errors handling
+    case RetrieveAllIbexData =>
       retrieveIbexDataFrom(None)
 
     case RetrieveIbexDataFrom(date) =>
@@ -48,7 +48,7 @@ class Ibex35ScrapyDAO extends Actor with ActorLogging with ScrapyRTDefaultProtoc
 
   private def retrieveIbexDataFrom(fromDate: Option[DateTime] = None) =
     Marshal(buildRequest(fromDate)).to[RequestEntity] flatMap { rqEntity =>
-      //TODO: TO SETTINGS.conf
+      //TODO: Pending from https://github.com/akka/akka-http/issues/1527 (Not applying request settings)
       val timeoutSettings =
         ConnectionPoolSettings(context.system.settings.config).withIdleTimeout(10 minutes)
 
@@ -70,12 +70,10 @@ class Ibex35ScrapyDAO extends Actor with ActorLogging with ScrapyRTDefaultProtoc
         CantRetrieveDataFromIbex35Crawler
     } pipeTo (sender)
 
-  private def buildRequest(fromDate: Option[DateTime] = None): ScrapyRTRequest = {
+  private def buildRequest(fromDate: Option[DateTime] = None): ScrapyRTRequest =
     fromDate map { date =>
       ScrapyRTRequest("ibex35", true, Map("lookup_until_date" -> date.toString("dd-MM-yyyy")))
     } getOrElse
       ScrapyRTRequest("ibex35", true, Map.empty)
-      //ScrapyRTRequest("ibex35", true, Map("lookup_until_date" -> "10-10-2017"))
-  }
 
 }
