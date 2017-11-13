@@ -23,6 +23,7 @@ object StatsGenerator {
   //If not enough elements are provided we work with the provided elements
   val START_ELEMENTS_RECOMMENDED: Int = MM200._2 * 2
 
+  //TODO: Create traits to inherit????
   type Stat = (DateTime, String, BigDecimal)
   type Data = (DateTime, BigDecimal)
 

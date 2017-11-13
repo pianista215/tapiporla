@@ -10,9 +10,11 @@ object Ibex35ESDAO {
 
   object Historic {
     val typeName = "historic"
+    val openingValue = "opening_value"
     val closeValue = "close_value"
     val minValue = "min_value"
     val maxValue = "max_value"
+    val volume = "volume"
   }
 
   object Stats {
@@ -30,9 +32,11 @@ class Ibex35ESDAO extends ElasticDAO {
 
         mapping(Ibex35ESDAO.Historic.typeName) as(
           dateField(Ibex35ESDAO.date),
+          doubleField(Ibex35ESDAO.Historic.openingValue),
           doubleField(Ibex35ESDAO.Historic.closeValue),
           doubleField(Ibex35ESDAO.Historic.minValue),
-          doubleField(Ibex35ESDAO.Historic.maxValue)
+          doubleField(Ibex35ESDAO.Historic.maxValue),
+          doubleField(Ibex35ESDAO.Historic.volume)
         ),
 
         mapping(Ibex35ESDAO.Stats.typeName) as (
