@@ -6,7 +6,7 @@ import logging
 class Ibex35Spider(scrapy.Spider):
     name = "ibex35"
 
-    lookup_until_date = None
+    parameters = None
 
     parameters = None
 
@@ -18,9 +18,10 @@ class Ibex35Spider(scrapy.Spider):
 
     def __init__(self, lookup_until_date=None, *args, **kwargs):
         super(Ibex35Spider, self).__init__(*args, **kwargs)
-        for k, v in kwargs.iteritems():
-            assert( k in self.__class__.__allowed )
-            setattr(self, k, v)
+        if kwargs:
+            for k, v in kwargs.iteritems():
+                assert( k in self.__class__.__allowed )
+                setattr(self, k, v)
 
         if lookup_until_date is not None:
             self.lookup_until_date = dt.strptime(lookup_until_date, "%d-%m-%Y")
@@ -43,7 +44,8 @@ class Ibex35Spider(scrapy.Spider):
 
 
     def parse(self, response):
-        self.logger.warning(self.parameters)
+        self.logger.info(self.parameters)
+        
         validIbexRow = False
         ibex_date = None
         close_value = None
