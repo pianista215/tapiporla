@@ -150,9 +150,10 @@ class Ibex35StatManager extends TapiporlaActor with Stash {
         val ibex35HistoricRetrieved = data.hits.map(Ibex35Historic.fromHit)
 
         val stats: Seq[Ibex35Stat] =
-          StatsGenerator.generateStatsFor(
+          StatsGenerator.generateMultipleMMs(
             ibex35HistoricRetrieved.map(_.toStatInputData),
-            lastPackageProcess.map(_.toStatInputData)
+            lastPackageProcess.map(_.toStatInputData),
+            MMToCollect
           ) map Ibex35Stat.fromStat
 
         val updatedDate = stats.last.date

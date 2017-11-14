@@ -1,8 +1,8 @@
 package com.tapiporla.microservices.retrievers.common.model
 
-import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator.Data
+import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator.StatDataInput
 
 trait DataInputExtractable {
 
-  def toStatInputData: Data
+  def toStatInputData: StatDataInput
 }

@@ -4,7 +4,7 @@ import com.github.nscala_time.time.Imports._
 import com.sksamuel.elastic4s.Hit
 import com.tapiporla.microservices.retrievers.common.TapiporlaConfig
 import com.tapiporla.microservices.retrievers.common.model.ElasticDocumentInsertable
-import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator.Stat
+import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator.StatGenerated
 import com.tapiporla.microservices.retrievers.indices.ibex35.dao.Ibex35ESDAO
 
 object Ibex35Stat {
@@ -26,8 +26,8 @@ object Ibex35Stat {
     )
   }
 
-  def fromStat(stat: Stat): Ibex35Stat =
-    Ibex35Stat(stat._1, stat._2, stat._3)
+  def fromStat(stat: StatGenerated): Ibex35Stat =
+    Ibex35Stat(stat.date, stat.statType, stat.value)
 
 }
 
