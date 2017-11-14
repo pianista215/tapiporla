@@ -8,6 +8,8 @@ class Ibex35Spider(scrapy.Spider):
 
     parameters = None
 
+    parameters = None
+
     start_urls = [
         "http://www.eleconomista.es/indice/IBEX-35/historico"
     ]
