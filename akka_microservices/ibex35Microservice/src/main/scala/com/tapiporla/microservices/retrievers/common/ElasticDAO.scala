@@ -170,8 +170,6 @@ trait ElasticDAO extends TapiporlaActor with Stash {
           ErrorDeletingData(e, index, typeName, rq)
       } pipeTo sender
 
-    case _ =>
-      log.error("Unknown message")
   }
 
 }

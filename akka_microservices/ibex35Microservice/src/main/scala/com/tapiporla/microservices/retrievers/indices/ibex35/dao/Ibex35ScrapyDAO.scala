@@ -43,7 +43,6 @@ class Ibex35ScrapyDAO extends TapiporlaActor with ScrapyRTDefaultProtocol {
     case RetrieveIbexDataFrom(date) =>
       retrieveIbexDataFrom(Some(date))
 
-    case _ => log.error("Unknown message")
   }
 
   private def retrieveIbexDataFrom(fromDate: Option[DateTime] = None) =

@@ -114,8 +114,6 @@ class Ibex35HistoricManager extends Retriever with Stash {
       log.info(s"Data saved. Calling father to update stats")
       context.parent ! UpdateComplete
 
-    case _ =>
-      log.error("Unkown message")
   }
 
 }

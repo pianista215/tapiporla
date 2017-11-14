@@ -84,7 +84,6 @@ class Ibex35StatManager extends TapiporlaActor with Stash {
             gettingInitialStatus(lastMM200, lastMM100, lastMM40, generateCheckedMM(data))
           )
 
-        case _ => log.error("Unknown where to threat!!")
       }
       self ! CheckReadyToStart
 
@@ -142,8 +141,6 @@ class Ibex35StatManager extends TapiporlaActor with Stash {
       esDAO ! retrieveIbexHistoricFromDate(lastUpdated)
       context.become(updating(lastUpdated, Seq()))
 
-    case _ =>
-      log.error("Unknown message while ready")
   }
 
   def updating(lastUpdated: Option[DateTime], lastPackageProcess: Seq[Ibex35Historic]): Receive = {
@@ -192,8 +189,6 @@ class Ibex35StatManager extends TapiporlaActor with Stash {
         esDAO ! retrieveIbexHistoricFromDate(lastUpdated)
       }
 
-    case _ =>
-      log.error("Unknown message while updating")
   }
 
 
