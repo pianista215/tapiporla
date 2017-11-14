@@ -71,8 +71,8 @@ class Ibex35ScrapyDAO extends TapiporlaActor with ScrapyRTDefaultProtocol {
 
   private def buildRequest(fromDate: Option[DateTime] = None): ScrapyRTRequest =
     fromDate map { date =>
-      ScrapyRTRequest("ibex35", true, Map("lookup_until_date" -> date.toString("dd-MM-yyyy")))
+      ScrapyRTRequest("ibex35", start_requests = true, Map("lookup_until_date" -> date.toString(TapiporlaConfig.globalTimeFormat)))
     } getOrElse
-      ScrapyRTRequest("ibex35", true, Map.empty)
+      ScrapyRTRequest("ibex35", start_requests = true, Map.empty)
 
 }

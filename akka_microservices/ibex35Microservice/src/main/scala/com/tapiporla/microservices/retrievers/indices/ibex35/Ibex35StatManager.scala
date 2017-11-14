@@ -264,7 +264,7 @@ class Ibex35StatManager extends TapiporlaActor with Stash {
   }
 
   private def generateCheckedMM(status: MMStatus, rs: RichSearchResponse): MMStatus =
-    if(rs.hits.length > 0)
+    if(rs.hits.nonEmpty)
       status.checked(Some(Ibex35Stat.fromHit(rs.hits.head).date))
     else
       status.checked(None)

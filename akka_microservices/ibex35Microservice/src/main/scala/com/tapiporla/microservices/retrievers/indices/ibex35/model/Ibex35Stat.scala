@@ -2,6 +2,7 @@ package com.tapiporla.microservices.retrievers.indices.ibex35.model
 
 import com.github.nscala_time.time.Imports._
 import com.sksamuel.elastic4s.Hit
+import com.tapiporla.microservices.retrievers.common.TapiporlaConfig
 import com.tapiporla.microservices.retrievers.common.model.ElasticDocumentInsertable
 import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator.Stat
 import com.tapiporla.microservices.retrievers.indices.ibex35.dao.Ibex35ESDAO
@@ -10,7 +11,7 @@ object Ibex35Stat {
 
   def fromMap(map: Map[String,String]) = {
     Ibex35Stat(
-      DateTime.parse(map(Ibex35ESDAO.date), DateTimeFormat.forPattern("dd-MM-yyyy")),
+      DateTime.parse(map(Ibex35ESDAO.date), DateTimeFormat.forPattern(TapiporlaConfig.globalTimeFormat)),
       map(Ibex35ESDAO.Stats.statsAttr),
       BigDecimal(map(Ibex35ESDAO.Stats.statsValue))
     )

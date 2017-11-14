@@ -1,7 +1,5 @@
 package com.tapiporla.microservices.retrievers.common
 
-import java.util.concurrent.TimeUnit
-
 import com.typesafe.config.{Config, ConfigFactory}
 
 import scala.concurrent.duration.{Duration, FiniteDuration}
@@ -13,6 +11,9 @@ object TapiporlaConfig {
   private val daemonConfig = config.getConfig("tapiporla.daemon")
   private val elasticConfig = config.getConfig("tapiporla.elasticsearch")
   private val scrapyConfig = config.getConfig("tapiporla.scrapyrt")
+
+  //Be careful, this variable affects to Scrapy requests, and parsing responses...
+  val globalTimeFormat: String = "dd-MM-yyyy"
 
   object Daemon{
     val periodicExecution: FiniteDuration = Duration.fromNanos(daemonConfig.getDuration("periodic-execution").toNanos)
