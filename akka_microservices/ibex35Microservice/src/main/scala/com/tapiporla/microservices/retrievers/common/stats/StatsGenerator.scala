@@ -23,11 +23,6 @@ object StatsGenerator extends LazyLogging {
 
   case class MMDefinition(identifier: String, numberOfItems: Int)
 
-  val MM200 = MMDefinition.from(200) //TODO: Remove
-
-  //If not enough elements are provided we work with the provided elements
-  val START_ELEMENTS_RECOMMENDED: Int = MM200.numberOfItems * 2
-
   case class StatGenerated(statType: String, date: DateTime, value: BigDecimal)
   case class StatDataInput(date: DateTime, value: BigDecimal)
 

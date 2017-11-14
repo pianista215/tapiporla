@@ -203,7 +203,8 @@ class Ibex35StatManager extends TapiporlaActor with Stash {
 
   import com.sksamuel.elastic4s.ElasticDsl._
 
-  private val CHUNKS_SIZE = StatsGenerator.START_ELEMENTS_RECOMMENDED
+  private val CHUNKS_SIZE = MMToCollect.maxBy(_.numberOfItems).numberOfItems * 2
+
   /**
     * To avoid too much data from Database, we are going to process by steps the stats
     * @param date
