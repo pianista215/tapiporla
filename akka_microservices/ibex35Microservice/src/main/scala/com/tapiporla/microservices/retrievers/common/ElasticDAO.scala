@@ -102,7 +102,7 @@ trait ElasticDAO extends Actor with ActorLogging with Stash{
         case e: Exception =>
           ProblemConnectingWithES(e)
 
-      } pipeTo (self)
+      } pipeTo self
 
 
     case ProblemConnectingWithES(e) =>
@@ -133,7 +133,7 @@ trait ElasticDAO extends Actor with ActorLogging with Stash{
         case e: Exception =>
           log.error(s"Impossible to save in index $index $typeName ${jsonDocs.length} docs", e)
           ErrorSavingData(e, index, typeName, jsonDocs)
-      } pipeTo(sender)
+      } pipeTo sender
 
     case rq @ RetrieveAllFromIndexSorted(index, typeName, where, sort, limitValue) =>
       client.execute {
@@ -149,7 +149,7 @@ trait ElasticDAO extends Actor with ActorLogging with Stash{
         case e: Exception =>
           log.error(s"Impossible to retrieve from index $index $typeName all sorted", e)
           ErrorRetrievingData(e, index, typeName, rq)
-      } pipeTo(sender)
+      } pipeTo sender
 
     case rq @ DeleteFromIndex(index, typeName, where) =>
       client.execute {
@@ -166,7 +166,7 @@ trait ElasticDAO extends Actor with ActorLogging with Stash{
         case e: Exception =>
           log.error(s"Impossible to delete in index $index $typeName", e)
           ErrorDeletingData(e, index, typeName, rq)
-      } pipeTo(sender)
+      } pipeTo sender
 
     case _ =>
       log.error("Unknown message")
