@@ -34,7 +34,8 @@ class Ibex35HistoricManager extends Retriever with Stash {
   val scrapyDAO =
     context.actorOf(Props[Ibex35ScrapyDAO], name = "Ibex35ScrapyDAO_Historic")
 
-  self ! InitIbex35Coordinator
+  override def preStart() =
+    self ! InitIbex35Coordinator
 
   override def receive = initial
 

@@ -86,7 +86,8 @@ trait ElasticDAO extends Actor with ActorLogging with Stash{
 
   def indexCreation: CreateIndexDefinition //Index to be created (if already exists we don't check if the mappings are similar)
 
-  self ! InitElasticDAO
+  override def preStart() =
+    self ! InitElasticDAO
 
   override def receive = initial
 
