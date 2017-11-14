@@ -2,7 +2,6 @@ package com.tapiporla.microservices.retrievers.common.stats
 
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.DateTime
-import org.slf4j.{Logger, LoggerFactory}
 
 import scala.annotation.tailrec
 
@@ -13,7 +12,7 @@ import scala.annotation.tailrec
   * MM40
   * MM10
   */
-object StatsGenerator extends LazyLogging{
+object StatsGenerator extends LazyLogging {
 
   type MMDefition = (String, Int)
 
@@ -72,7 +71,7 @@ object StatsGenerator extends LazyLogging{
         helper(
           pending.tail,
           newChunk,
-          accum :+ (pending.head._1, mean(newChunk map (_._2)))
+          accum :+ (pending.head._1, StatsUtils.mean(newChunk map (_._2)))
         )
       }
 
@@ -85,7 +84,5 @@ object StatsGenerator extends LazyLogging{
     helper(initial drop remainingToCompleteChunk, previousData ++ (initial take remainingToCompleteChunk), Seq())
   }
 
-  def mean(data: Seq[BigDecimal]): BigDecimal =
-    data.sum / data.length
 
 }

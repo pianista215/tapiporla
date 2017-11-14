@@ -5,9 +5,10 @@ import com.sksamuel.elastic4s.ElasticDsl.termQuery
 import com.sksamuel.elastic4s.searches.RichSearchResponse
 import com.sksamuel.elastic4s.searches.queries.term.TermQueryDefinition
 import com.tapiporla.microservices.retrievers.common.ElasticDAO._
+import com.tapiporla.microservices.retrievers.common.TapiporlaActor
 import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator
 import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator.MMDefition
-import com.tapiporla.microservices.retrievers.indices.ibex35.Ibex35StatManager.{CheckReadyToStart, InitIbex35StatManager, UpdateStats, StatsUpdatedSuccessfully}
+import com.tapiporla.microservices.retrievers.indices.ibex35.Ibex35StatManager.{CheckReadyToStart, InitIbex35StatManager, StatsUpdatedSuccessfully, UpdateStats}
 import com.tapiporla.microservices.retrievers.indices.ibex35.dao.Ibex35ESDAO
 import com.tapiporla.microservices.retrievers.indices.ibex35.model.{Ibex35Historic, Ibex35Stat}
 import org.elasticsearch.search.sort.SortOrder
@@ -29,7 +30,7 @@ object Ibex35StatManager {
   * The flow is: initial -> gettingInitialStatus -> waitingForDeletions -> ready -> updating -> ready...
   *
   */
-class Ibex35StatManager extends Actor with ActorLogging with Stash {
+class Ibex35StatManager extends TapiporlaActor with Stash {
 
   val esDAO =
     context.actorOf(Props[Ibex35ESDAO], name = "Ibex35ESDAO_Manager")

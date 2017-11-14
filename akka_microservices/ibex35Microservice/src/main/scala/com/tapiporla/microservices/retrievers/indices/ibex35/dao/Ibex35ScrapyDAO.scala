@@ -8,7 +8,7 @@ import akka.http.scaladsl.settings.ConnectionPoolSettings
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.pattern.pipe
 import akka.stream.ActorMaterializer
-import com.tapiporla.microservices.retrievers.common.TapiporlaConfig
+import com.tapiporla.microservices.retrievers.common.{TapiporlaActor, TapiporlaConfig}
 import com.tapiporla.microservices.retrievers.common.model.{ScrapyRTDefaultProtocol, ScrapyRTRequest, ScrapyRTResponse}
 import com.tapiporla.microservices.retrievers.indices.ibex35.dao.Ibex35ScrapyDAO.{CantRetrieveDataFromIbex35Crawler, IbexDataRetrieved, RetrieveAllIbexData, RetrieveIbexDataFrom}
 import com.tapiporla.microservices.retrievers.indices.ibex35.model.Ibex35Historic
@@ -29,7 +29,7 @@ object Ibex35ScrapyDAO {
 /**
   * In charge of retrieve data from the ScrapyRT endpoint
   */
-class Ibex35ScrapyDAO extends Actor with ActorLogging with ScrapyRTDefaultProtocol {
+class Ibex35ScrapyDAO extends TapiporlaActor with ScrapyRTDefaultProtocol {
 
   val endpoint = TapiporlaConfig.ScrapyRT.endpoint
   val http = Http(context.system)

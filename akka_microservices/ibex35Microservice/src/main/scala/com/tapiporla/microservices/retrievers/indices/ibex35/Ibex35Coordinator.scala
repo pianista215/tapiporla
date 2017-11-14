@@ -2,7 +2,7 @@ package com.tapiporla.microservices.retrievers.indices.ibex35
 
 import akka.actor.{Actor, ActorLogging, Props}
 import com.tapiporla.microservices.retrievers.common.Retriever.UpdateHistoricData
-import com.tapiporla.microservices.retrievers.common.TapiporlaConfig
+import com.tapiporla.microservices.retrievers.common.{TapiporlaActor, TapiporlaConfig}
 import com.tapiporla.microservices.retrievers.indices.ibex35.Ibex35HistoricManager.UpdateComplete
 import com.tapiporla.microservices.retrievers.indices.ibex35.Ibex35StatManager.StatsUpdatedSuccessfully
 
@@ -12,7 +12,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 /**
   * Chief actor in charge of coordination between Historic Manager and Stat Manager
   */
-class Ibex35Coordinator extends Actor with ActorLogging{
+class Ibex35Coordinator extends TapiporlaActor {
 
   val historicManager =
     context.actorOf(Props[Ibex35HistoricManager], name = "Ibex35HistoricManager")
