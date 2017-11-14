@@ -22,6 +22,7 @@ object TapiporlaConfig {
     val endpoint: String = elasticConfig.getString("endpoint")
     val clusterName: String = elasticConfig.getString("cluster-name")
     val authUser: String = elasticConfig.getString("auth-user")
+    val timeBeforeRetries: FiniteDuration = Duration.fromNanos(elasticConfig.getDuration("time-before-retries").toNanos)
   }
 
   object ScrapyRT {
