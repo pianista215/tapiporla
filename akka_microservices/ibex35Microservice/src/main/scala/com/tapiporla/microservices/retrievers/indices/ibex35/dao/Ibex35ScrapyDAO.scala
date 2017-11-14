@@ -66,7 +66,7 @@ class Ibex35ScrapyDAO extends Actor with ActorLogging with ScrapyRTDefaultProtoc
       IbexDataRetrieved(items)
     } recover {
       case e: Exception =>
-        log.error(s"Error retrieving data from Crawler: $e.")
+        log.error(s"Error retrieving data from Crawler:", e)
         CantRetrieveDataFromIbex35Crawler
     } pipeTo (sender)
 

@@ -127,7 +127,7 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
       context.become(ready(consistentDate))
 
     case ErrorDeletingData(ex, index, typeName, rq) =>
-      log.error(s"Can't delete data from $index / $typeName retrying in 30 seconds due to: $ex")
+      log.error(s"Can't delete data from $index / $typeName retrying in 30 seconds due to:", ex)
       context.system.scheduler.scheduleOnce(30 seconds, esDAO, rq)
 
     case _ =>
@@ -173,11 +173,11 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
 
 
     case ErrorRetrievingData(ex, index, typeName, rq) =>
-      log.error(s"Can't get data from $index / $typeName, retrying in 30 seconds due to: $ex")
+      log.error(s"Can't get data from $index / $typeName, retrying in 30 seconds due to:", ex)
       context.system.scheduler.scheduleOnce(30 seconds, esDAO, rq)
 
     case ErrorSavingData(ex, index, typeName, data) =>
-      log.error(s"Can't save data in $index / $typeName, retrying in 30 seconds: $ex")
+      log.error(s"Can't save data in $index / $typeName, retrying in 30 seconds:", ex)
       context.system.scheduler.scheduleOnce(30 seconds, esDAO, SaveInIndex(index,typeName,data))
 
     case DataSavedConfirmation(index, typeName, data) =>

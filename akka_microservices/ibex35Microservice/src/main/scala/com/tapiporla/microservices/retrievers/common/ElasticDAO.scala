@@ -106,7 +106,7 @@ trait ElasticDAO extends Actor with ActorLogging with Stash{
 
 
     case ProblemConnectingWithES(e) =>
-      log.error(s"Error initializing ElasticSearch DAO ${self.path.name} :$e. Trying again in 30 seconds")
+      log.error(s"Error initializing ElasticSearch DAO. Trying again in 30 seconds", e)
       context.system.scheduler.scheduleOnce(30 seconds, self, InitElasticDAO)
 
 
@@ -131,7 +131,7 @@ trait ElasticDAO extends Actor with ActorLogging with Stash{
         DataSavedConfirmation(index, typeName, jsonDocs)
       } recover {
         case e: Exception =>
-          log.error(s"Impossible to save in index $index $typeName ${jsonDocs.length} docs: $e")
+          log.error(s"Impossible to save in index $index $typeName ${jsonDocs.length} docs", e)
           ErrorSavingData(e, index, typeName, jsonDocs)
       } pipeTo(sender)
 
@@ -147,7 +147,7 @@ trait ElasticDAO extends Actor with ActorLogging with Stash{
         DataRetrieved(index, typeName, result, rq)
       } recover {
         case e: Exception =>
-          log.error(s"Impossible to retrieve from index $index $typeName all sorted: $e")
+          log.error(s"Impossible to retrieve from index $index $typeName all sorted", e)
           ErrorRetrievingData(e, index, typeName, rq)
       } pipeTo(sender)
 
@@ -164,7 +164,7 @@ trait ElasticDAO extends Actor with ActorLogging with Stash{
         DeleteConfirmation(index, typeName, rq)
       } recover {
         case e: Exception =>
-          log.error(s"Impossible to delete in index $index $typeName: $e")
+          log.error(s"Impossible to delete in index $index $typeName", e)
           ErrorDeletingData(e, index, typeName, rq)
       } pipeTo(sender)
 
