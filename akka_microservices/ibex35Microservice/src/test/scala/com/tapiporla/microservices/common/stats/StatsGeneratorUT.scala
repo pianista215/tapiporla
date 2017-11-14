@@ -142,6 +142,59 @@ class StatsGeneratorUT extends FlatSpec with Matchers {
 
   }
 
-  //TODO: need more testing here (for example overflowing the previous... etc)
+  it should "generate more than one MM at time" in {
+
+
+    val example2: Seq[StatDataInput] = (5 to 12) map { x =>
+      StatDataInput(generateDates(x), BigDecimal(x*2))
+    }
+
+    example2 should have length(8)
+
+    val previous2: Seq[StatDataInput] = (1 to 4) map { x =>
+      StatDataInput(generateDates(x), BigDecimal(x*2))
+    }
+
+    previous2 should have length(4)
+
+    val lastThree = example2 drop 5
+    val lastEight = example2
+
+
+    val expected =
+
+    StatsGenerator.generateMultipleMMs(example2, previous2, Seq(MM10, MM5)) should be (
+      Seq(
+        StatGenerated(MM10.identifier, lastThree.head.date, BigDecimal(11)),
+        StatGenerated(MM10.identifier, lastThree(1).date, BigDecimal(13)),
+        StatGenerated(MM10.identifier, lastThree.last.date, BigDecimal(15)),
+        StatGenerated(MM5.identifier, lastEight.head.date, BigDecimal(6)), //2+4+6+8+10
+        StatGenerated(MM5.identifier, lastEight(1).date, BigDecimal(8)),
+        StatGenerated(MM5.identifier, lastEight(2).date, BigDecimal(10)),
+        StatGenerated(MM5.identifier, lastEight(3).date, BigDecimal(12)),
+        StatGenerated(MM5.identifier, lastEight(4).date, BigDecimal(14)),
+        StatGenerated(MM5.identifier, lastEight(5).date, BigDecimal(16)),
+        StatGenerated(MM5.identifier, lastEight(6).date, BigDecimal(18)),
+        StatGenerated(MM5.identifier, lastEight.last.date, BigDecimal(20))
+      )
+    )
+    StatsGenerator.generateMultipleMMs(example2, previous2, Seq(MM5, MM10)) should be (
+      Seq(
+        StatGenerated(MM5.identifier, lastEight.head.date, BigDecimal(6)), //2+4+6+8+10
+        StatGenerated(MM5.identifier, lastEight(1).date, BigDecimal(8)),
+        StatGenerated(MM5.identifier, lastEight(2).date, BigDecimal(10)),
+        StatGenerated(MM5.identifier, lastEight(3).date, BigDecimal(12)),
+        StatGenerated(MM5.identifier, lastEight(4).date, BigDecimal(14)),
+        StatGenerated(MM5.identifier, lastEight(5).date, BigDecimal(16)),
+        StatGenerated(MM5.identifier, lastEight(6).date, BigDecimal(18)),
+        StatGenerated(MM5.identifier, lastEight.last.date, BigDecimal(20)),
+        StatGenerated(MM10.identifier, lastThree.head.date, BigDecimal(11)),
+        StatGenerated(MM10.identifier, lastThree(1).date, BigDecimal(13)),
+        StatGenerated(MM10.identifier, lastThree.last.date, BigDecimal(15))
+      )
+    )
+
+    //TODO: Add more tests
+  }
 
 }

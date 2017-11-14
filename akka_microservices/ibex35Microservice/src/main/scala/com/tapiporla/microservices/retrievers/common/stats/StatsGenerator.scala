@@ -23,10 +23,7 @@ object StatsGenerator extends LazyLogging {
 
   case class MMDefinition(identifier: String, numberOfItems: Int)
 
-  val MM200 = MMDefinition.from(200)
-  /*val MM100 = MMDefinition.from(100)
-  val MM40 = MMDefinition.from(40)
-  val MM20 = MMDefinition.from(20)*/
+  val MM200 = MMDefinition.from(200) //TODO: Remove
 
   //If not enough elements are provided we work with the provided elements
   val START_ELEMENTS_RECOMMENDED: Int = MM200.numberOfItems * 2
@@ -41,13 +38,12 @@ object StatsGenerator extends LazyLogging {
                            mmsToProcess: Seq[MMDefinition]
                          ) = {
 
-    val maximumHistoricElementsNeeded: Int = mmsToProcess.maxBy(x => x.numberOfItems).numberOfItems -1
 
     val dataByDate = initial.sortBy(_.date.toDate)
-    val previousByDate = previousData.sortBy(_.date.toDate) takeRight maximumHistoricElementsNeeded
+    val previousByDate = previousData.sortBy(_.date.toDate)
 
     mmsToProcess flatMap { mm =>
-      generateMM(initial, previousData, mm)
+      generateMM(dataByDate, previousByDate takeRight mm.numberOfItems - 1, mm)
     }
   }
 

@@ -156,6 +156,16 @@ class Ibex35StatManager extends TapiporlaActor with Stash {
             MMToCollect
           ) map Ibex35Stat.fromStat
 
+        val mm200 = stats.filter{ x => x.statAttr=="MM200"}.last
+
+        val mm100 = stats.filter{ x => x.statAttr=="MM100"}.last
+
+        val mm40 = stats.filter{ x => x.statAttr=="MM40"}.last
+
+        val mm20 = stats.filter{ x => x.statAttr=="MM20"}.last
+
+        log.info(s"$mm200 $mm100 $mm40 $mm20")
+
         val updatedDate = stats.last.date
 
         log.info(s"Saving stats updated until: $updatedDate")
