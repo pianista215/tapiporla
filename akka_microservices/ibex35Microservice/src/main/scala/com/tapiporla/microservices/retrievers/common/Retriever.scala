@@ -6,6 +6,4 @@ object Retriever {
 }
 
 
-trait Retriever extends TapiporlaActor {
-
-}
+trait Retriever extends TapiporlaActor
