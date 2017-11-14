@@ -19,10 +19,10 @@ import scala.concurrent.duration._
 
 object Ibex35ScrapyDAO {
 
-  object RetrieveAllIbexData
+  case object RetrieveAllIbexData
   case class RetrieveIbexDataFrom(date: DateTime)
   case class IbexDataRetrieved(ibexData: Seq[Ibex35Historic])
-  object CantRetrieveDataFromIbex35Crawler
+  case object CantRetrieveDataFromIbex35Crawler
 }
 
 

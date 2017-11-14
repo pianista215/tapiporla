@@ -17,9 +17,9 @@ import scala.concurrent.duration._
 
 
 object Ibex35HistoricManager {
-  object InitIbex35Coordinator
+  case object InitIbex35Coordinator
   case class ReadyToStart(lastUpdated: Option[DateTime])
-  object UpdateComplete
+  case object UpdateComplete
 }
 
 /**

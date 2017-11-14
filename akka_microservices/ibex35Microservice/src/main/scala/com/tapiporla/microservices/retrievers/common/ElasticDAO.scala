@@ -68,9 +68,9 @@ object ElasticDAO {
                                   originalRQ: RetrieveAllFromIndexSorted
                                 )
 
-  object InitElasticDAO
+  case object InitElasticDAO
   case class ProblemConnectingWithES(e: Exception)
-  object ReadyToListen
+  case object ReadyToListen
 
   private val settings = Settings.builder()
     .put("cluster.name", TapiporlaConfig.ElasticSearch.clusterName)

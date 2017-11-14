@@ -17,10 +17,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 object Ibex35StatManager {
-  object InitIbex35StatManager //Called after Ibex35HistoricManager is updated to avoid race conditions
-  object UpdateStats //Called to Update stats (after Ibex35HistoricManager has inserted new data)
-  object CheckReadyToStart //Called to check if we have all the data needed to Start the manager
-  object StatsUpdatedSuccessfully //When stats has been generated succesfully
+  case object InitIbex35StatManager //Called after Ibex35HistoricManager is updated to avoid race conditions
+  case object UpdateStats //Called to Update stats (after Ibex35HistoricManager has inserted new data)
+  case object CheckReadyToStart //Called to check if we have all the data needed to Start the manager
+  case object StatsUpdatedSuccessfully //When stats has been generated succesfully
 }
 
 /**
