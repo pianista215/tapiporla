@@ -53,10 +53,10 @@ class Ibex35HistoricManager extends Retriever with Stash {
       )
 
     case DataRetrieved(index, typeName, data, _) =>
-      if(data.isEmpty) {
+      data.hits.headOption.fold {
         log.info("Starting without initial date")
         self ! ReadyToStart(None)
-      } else {
+      } { head =>
         log.info("Starting with initial retrieved")
         self ! ReadyToStart(Some(Ibex35Historic.fromHit(data.hits.head).date))
       }
