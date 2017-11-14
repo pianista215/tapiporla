@@ -1,7 +1,7 @@
 package com.tapiporla.microservices.common.stats
 
 import com.github.nscala_time.time.Imports.DateTimeFormat
-import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator
+import com.tapiporla.microservices.retrievers.common.stats.{StatsGenerator, StatsUtils}
 import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator.{Data, Stat}
 import org.joda.time.DateTime
 import org.scalatest.{FlatSpec, Matchers}
@@ -14,10 +14,10 @@ class StatsGeneratorUT extends FlatSpec with Matchers{
   "An StatsGenerator" should "be able to create a mean" in {
 
     val example: Seq[BigDecimal] = (0 to 10) map {x => BigDecimal(x)}
-    StatsGenerator.mean(example) should be (BigDecimal(5))
+    StatsUtils.mean(example) should be (BigDecimal(5))
 
     val example2: Seq[BigDecimal] = (0 to 9) map {x => BigDecimal(x)}
-    StatsGenerator.mean(example2) should be (BigDecimal(4.5))
+    StatsUtils.mean(example2) should be (BigDecimal(4.5))
 
   }
 

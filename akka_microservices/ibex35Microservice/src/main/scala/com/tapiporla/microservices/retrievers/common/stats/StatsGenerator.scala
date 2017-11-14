@@ -14,15 +14,22 @@ import scala.annotation.tailrec
   */
 object StatsGenerator extends LazyLogging {
 
-  type MMDefition = (String, Int)
+  object MMDefinition {
 
-  val MM200 = ("MM200", 200)
-  val MM100 = ("MM100", 100)
-  val MM40 = ("MM40", 40)
-  val MM20 = ("MM20", 20)
+    def from(numberOfItems: Int): MMDefinition =
+      MMDefinition(s"MM$numberOfItems", numberOfItems)
+
+  }
+
+  case class MMDefinition(identifier: String, numberOfItems: Int)
+
+  val MM200 = MMDefinition.from(200)
+  val MM100 = MMDefinition.from(100)
+  val MM40 = MMDefinition.from(40)
+  val MM20 = MMDefinition.from(20)
 
   //If not enough elements are provided we work with the provided elements
-  val START_ELEMENTS_RECOMMENDED: Int = MM200._2 * 2
+  val START_ELEMENTS_RECOMMENDED: Int = MM200.numberOfItems * 2
 
   //TODO: Create traits to inherit????
   type Stat = (DateTime, String, BigDecimal)
@@ -38,23 +45,23 @@ object StatsGenerator extends LazyLogging {
     val dataByDate = data.sortBy(_._1.toDate)
     val previousByDate = data.sortBy(_._1.toDate)
 
-    generateMM200From(dataByDate, previousByDate takeRight MM200._2 - 1) ++
-      generateMM100From(dataByDate, previousByDate takeRight MM100._2 -1) ++
-      generateMM40From(dataByDate, previousByDate takeRight MM40._2 - 1) ++
-      generateMM20From(dataByDate, previousByDate takeRight MM20._2 -1)
+    generateMM200From(dataByDate, previousByDate takeRight MM200.numberOfItems - 1) ++
+      generateMM100From(dataByDate, previousByDate takeRight MM100.numberOfItems -1) ++
+      generateMM40From(dataByDate, previousByDate takeRight MM40.numberOfItems - 1) ++
+      generateMM20From(dataByDate, previousByDate takeRight MM20.numberOfItems -1)
   }
 
   def generateMM200From(data: Seq[Data], previousData: Seq[Data]): Seq[Stat] =
-    generateMM(data, previousData, MM200._2) map {item => (item._1, MM200._1, item._2)}
+    generateMM(data, previousData, MM200.numberOfItems) map {item => (item._1, MM200.identifier, item._2)}
 
   def generateMM100From(data: Seq[Data], previousData: Seq[Data]): Seq[Stat] =
-    generateMM(data, previousData, MM100._2) map {item => (item._1, MM100._1, item._2)}
+    generateMM(data, previousData, MM100.numberOfItems) map {item => (item._1, MM100.identifier, item._2)}
 
   def generateMM40From(data: Seq[Data], previousData: Seq[Data]): Seq[Stat] =
-    generateMM(data, previousData, MM40._2) map {item => (item._1, MM40._1, item._2)}
+    generateMM(data, previousData, MM40.numberOfItems) map {item => (item._1, MM40.identifier, item._2)}
 
   def generateMM20From(data: Seq[Data], previousData: Seq[Data]): Seq[Stat] =
-    generateMM(data, previousData, MM20._2) map {item => (item._1, MM20._1, item._2)}
+    generateMM(data, previousData, MM20.numberOfItems) map {item => (item._1, MM20.identifier, item._2)}
 
   def generateMM(initial: Seq[Data], previousData: Seq[Data], number: Int): Seq[Data] = {
 
