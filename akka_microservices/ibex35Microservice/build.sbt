@@ -1,4 +1,4 @@
-name := "ibex35Microservice"
+name := "stockMicroservice"
 
 version := "0.1"
 

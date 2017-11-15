@@ -1,25 +1,25 @@
-package com.tapiporla.microservices.retrievers.indices.ibex35
+package com.tapiporla.microservices.retrievers.indices.stock
 
 import akka.actor.{Actor, ActorLogging, Props, Stash}
 import com.sksamuel.elastic4s.ElasticDsl.termQuery
 import com.sksamuel.elastic4s.searches.RichSearchResponse
 import com.sksamuel.elastic4s.searches.queries.term.TermQueryDefinition
 import com.tapiporla.microservices.retrievers.common.ElasticDAO._
-import com.tapiporla.microservices.retrievers.common.TapiporlaActor
+import com.tapiporla.microservices.retrievers.common.{TapiporlaActor, TapiporlaConfig}
 import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator
 import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator.MMDefinition
-import com.tapiporla.microservices.retrievers.indices.ibex35.Ibex35StatManager._
-import com.tapiporla.microservices.retrievers.indices.ibex35.dao.Ibex35ESDAO
-import com.tapiporla.microservices.retrievers.indices.ibex35.model.{Ibex35Historic, Ibex35Stat}
+import com.tapiporla.microservices.retrievers.indices.stock.StockStatManager._
+import com.tapiporla.microservices.retrievers.indices.stock.dao.StockESDAO
+import com.tapiporla.microservices.retrievers.indices.stock.model.{StockHistoric, StockStat}
 import org.elasticsearch.search.sort.SortOrder
 import org.joda.time.DateTime
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
-object Ibex35StatManager {
-  case object InitIbex35StatManager //Called after Ibex35HistoricManager is updated to avoid race conditions
-  case object UpdateStats //Called to Update stats (after Ibex35HistoricManager has inserted new data)
+object StockStatManager {
+  case object InitStatManager //Called after StockHistoricManager is updated to avoid race conditions
+  case object UpdateStats //Called to Update stats (after StockHistoricManager has inserted new data)
   case object CheckReadyToStart //Called to check if we have all the data needed to Start the manager
   case object StatsUpdatedSuccessfully //When stats has been generated succesfully
 
@@ -39,7 +39,7 @@ object Ibex35StatManager {
 
 
   val MMToCollect: Seq[MMDefinition] =
-    Seq(200, 100, 40, 20) map StatsGenerator.MMDefinition.from //TODO: To config
+    TapiporlaConfig.Stats.mmGeneration map StatsGenerator.MMDefinition.from
 
 }
 
@@ -49,16 +49,16 @@ object Ibex35StatManager {
   * The flow is: initial -> gettingInitialStatus -> waitingForDeletions -> ready -> updating -> ready...
   *
   */
-class Ibex35StatManager extends TapiporlaActor with Stash {
+class StockStatManager extends TapiporlaActor with Stash {
 
   val esDAO =
-    context.actorOf(Props[Ibex35ESDAO], name = "Ibex35ESDAO_Manager")
+    context.actorOf(Props[StockESDAO], name = s"${stockName}ESDAO_Manager")
 
   override def receive: Receive = initial
 
   def initial: Receive = {
 
-    case InitIbex35StatManager =>
+    case InitStatManager =>
       log.info("Recovering initial status")
 
       //Recover MM*** status
@@ -77,7 +77,7 @@ class Ibex35StatManager extends TapiporlaActor with Stash {
                           ): Receive = {
 
     case DataRetrieved(_, _, data, rq) if rq.where.nonEmpty => rq.where.get match {
-        case TermQueryDefinition(Ibex35ESDAO.Stats.statsAttr, mmValue: String, _, _) =>
+        case TermQueryDefinition(StockESDAO.Stats.statsAttr, mmValue: String, _, _) =>
           context.become(
             gettingInitialStatus(updateMMStatuses(statuses, data, mmValue))
           )
@@ -135,33 +135,33 @@ class Ibex35StatManager extends TapiporlaActor with Stash {
   def ready(lastUpdated: Option[DateTime]): Receive = {
 
     case UpdateStats =>
-      log.info(s"Time to update stats from Ibex35")
-      esDAO ! retrieveIbexHistoricFromDate(lastUpdated)
+      log.info(s"Time to update stats from ${stockName}")
+      esDAO ! retrieveStockHistoricFromDate(lastUpdated)
       context.become(updating(lastUpdated, Seq()))
 
   }
 
-  def updating(lastUpdated: Option[DateTime], lastPackageProcess: Seq[Ibex35Historic]): Receive = {
+  def updating(lastUpdated: Option[DateTime], lastPackageProcess: Seq[StockHistoric]): Receive = {
 
     case DataRetrieved(index, typeName, data, _) =>
       log.info(s"Get from $index / $typeName data: ${data.hits.length} documents")
 
       if(data.hits.nonEmpty) {
-        val ibex35HistoricRetrieved = data.hits.map(Ibex35Historic.fromHit)
+        val stockHistoricRetrieved = data.hits.map(StockHistoric.fromHit)
 
-        val stats: Seq[Ibex35Stat] =
+        val stats: Seq[StockStat] =
           StatsGenerator.generateMultipleMMs(
-            ibex35HistoricRetrieved.map(_.toStatInputData),
+            stockHistoricRetrieved.map(_.toStatInputData),
             lastPackageProcess.map(_.toStatInputData),
             MMToCollect
-          ) map Ibex35Stat.fromStat
+          ) map StockStat.fromStat
         
 
         val updatedDate = stats.last.date
 
         log.info(s"Saving stats updated until: $updatedDate")
-        esDAO ! SaveInIndex(Ibex35ESDAO.index, Ibex35ESDAO.Stats.typeName, stats)
-        context.become(updating(Some(updatedDate), ibex35HistoricRetrieved))
+        esDAO ! SaveInIndex(StockESDAO.index, StockESDAO.Stats.typeName, stats)
+        context.become(updating(Some(updatedDate), stockHistoricRetrieved))
       } else {
         log.error(s"No data to be updated from $index. Check if new data is being retrieved correctly. Moving to ready")
         context.become(ready(lastUpdated))
@@ -186,7 +186,7 @@ class Ibex35StatManager extends TapiporlaActor with Stash {
         context.parent ! StatsUpdatedSuccessfully
       } else { //Continue generating Stats
         log.info(s"We have more data to generate stats. Continue updating stats from: $lastUpdated")
-        esDAO ! retrieveIbexHistoricFromDate(lastUpdated)
+        esDAO ! retrieveStockHistoricFromDate(lastUpdated)
       }
 
   }
@@ -200,13 +200,13 @@ class Ibex35StatManager extends TapiporlaActor with Stash {
     * To avoid too much data from Database, we are going to process by steps the stats
     * @param date
     */
-  private def retrieveIbexHistoricFromDate(date: Option[DateTime]) =
+  private def retrieveStockHistoricFromDate(date: Option[DateTime]) =
 
     RetrieveAllFromIndexSorted(
-      Ibex35ESDAO.index,
-      Ibex35ESDAO.Historic.typeName,
-      date map {dt => rangeQuery(Ibex35ESDAO.date) gt dt.toString},
-      Some(fieldSort(Ibex35ESDAO.date).order(SortOrder.ASC)),
+      StockESDAO.index,
+      StockESDAO.Historic.typeName,
+      date map {dt => rangeQuery(StockESDAO.date) gt dt.toString},
+      Some(fieldSort(StockESDAO.date).order(SortOrder.ASC)),
       Some(CHUNKS_SIZE)
     )
 
@@ -219,10 +219,10 @@ class Ibex35StatManager extends TapiporlaActor with Stash {
     */
   private def retrieveLastMMUpdated(mm: MMDefinition): RetrieveAllFromIndexSorted =
     RetrieveAllFromIndexSorted(
-      Ibex35ESDAO.index,
-      Ibex35ESDAO.Stats.typeName,
-      Some(termQuery(Ibex35ESDAO.Stats.statsAttr, mm.identifier)),
-      Some(fieldSort(Ibex35ESDAO.date).order(SortOrder.DESC)),
+      StockESDAO.index,
+      StockESDAO.Stats.typeName,
+      Some(termQuery(StockESDAO.Stats.statsAttr, mm.identifier)),
+      Some(fieldSort(StockESDAO.date).order(SortOrder.DESC)),
       Some(1)
     )
 
@@ -233,12 +233,12 @@ class Ibex35StatManager extends TapiporlaActor with Stash {
     */
   private def deleteStatsOlderThan(date: Option[DateTime]): DeleteFromIndex = {
     val deleteQuery = date map { consistentDate =>
-      rangeQuery(Ibex35ESDAO.date) gt consistentDate.toString
+      rangeQuery(StockESDAO.date) gt consistentDate.toString
     }
 
     DeleteFromIndex(
-      Ibex35ESDAO.index,
-      Ibex35ESDAO.Stats.typeName,
+      StockESDAO.index,
+      StockESDAO.Stats.typeName,
       deleteQuery
     )
   }
@@ -268,7 +268,7 @@ class Ibex35StatManager extends TapiporlaActor with Stash {
 
   private def generateCheckedMM(status: MMStatus, rs: RichSearchResponse): MMStatus =
     if(rs.hits.nonEmpty)
-      status.checked(Some(Ibex35Stat.fromHit(rs.hits.head).date))
+      status.checked(Some(StockStat.fromHit(rs.hits.head).date))
     else
       status.checked(None)
 

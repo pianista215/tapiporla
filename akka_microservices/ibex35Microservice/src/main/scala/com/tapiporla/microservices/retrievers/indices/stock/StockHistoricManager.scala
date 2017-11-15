@@ -1,13 +1,13 @@
-package com.tapiporla.microservices.retrievers.indices.ibex35
+package com.tapiporla.microservices.retrievers.indices.stock
 
 import akka.actor.{Props, Stash}
 import com.tapiporla.microservices.retrievers.common.{ElasticDAO, Retriever, TapiporlaConfig}
 import com.tapiporla.microservices.retrievers.common.Retriever.UpdateHistoricData
 import com.tapiporla.microservices.retrievers.common.ElasticDAO._
-import com.tapiporla.microservices.retrievers.indices.ibex35.Ibex35HistoricManager.{InitIbex35Coordinator, ReadyToStart, UpdateComplete}
-import com.tapiporla.microservices.retrievers.indices.ibex35.dao.Ibex35ScrapyDAO.{CantRetrieveDataFromIbex35Crawler, IbexDataRetrieved, RetrieveAllIbexData, RetrieveIbexDataFrom}
-import com.tapiporla.microservices.retrievers.indices.ibex35.dao.{Ibex35ESDAO, Ibex35ScrapyDAO}
-import com.tapiporla.microservices.retrievers.indices.ibex35.model.Ibex35Historic
+import com.tapiporla.microservices.retrievers.indices.stock.StockHistoricManager.{InitCoordinator, ReadyToStart, UpdateComplete}
+import com.tapiporla.microservices.retrievers.indices.stock.dao.StockScrapyDAO.{CantRetrieveDataFromCrawler, StockDataRetrieved, RetrieveAllStockData, RetrieveStockDataFrom}
+import com.tapiporla.microservices.retrievers.indices.stock.dao.{StockESDAO, StockScrapyDAO}
+import com.tapiporla.microservices.retrievers.indices.stock.model.StockHistoric
 import org.elasticsearch.search.sort.SortOrder
 import org.joda.time.DateTime
 
@@ -16,39 +16,39 @@ import scala.concurrent.duration._
 
 
 
-object Ibex35HistoricManager {
-  case object InitIbex35Coordinator
+object StockHistoricManager {
+  case object InitCoordinator
   case class ReadyToStart(lastUpdated: Option[DateTime])
   case object UpdateComplete
 }
 
 /**
-  * Actor in charge of the Ibex35 data retrieved from ScrapyRT
+  * Actor in charge of the Stock data retrieved from ScrapyRT
   * and persisted in ElasticSearch
   */
-class Ibex35HistoricManager extends Retriever with Stash {
+class StockHistoricManager extends Retriever with Stash {
 
   val esDAO =
-    context.actorOf(Props[Ibex35ESDAO], name = "Ibex35ESDAO_Historic")
+    context.actorOf(Props[StockESDAO], name = s"${stockName}ESDAO_Historic")
 
   val scrapyDAO =
-    context.actorOf(Props[Ibex35ScrapyDAO], name = "Ibex35ScrapyDAO_Historic")
+    context.actorOf(Props[StockScrapyDAO], name = s"${stockName}ScrapyDAO_Historic")
 
   override def preStart() =
-    self ! InitIbex35Coordinator
+    self ! InitCoordinator
 
   override def receive = initial
 
   def initial: Receive = {
 
-    case InitIbex35Coordinator =>
+    case InitCoordinator =>
       import com.sksamuel.elastic4s.ElasticDsl._
       log.info("Recovering initial status")
       esDAO ! RetrieveAllFromIndexSorted(
-        Ibex35ESDAO.index,
-        Ibex35ESDAO.Historic.typeName,
+        StockESDAO.index,
+        StockESDAO.Historic.typeName,
         None,
-        Some(fieldSort(Ibex35ESDAO.date).order(SortOrder.DESC)),
+        Some(fieldSort(StockESDAO.date).order(SortOrder.DESC)),
         Some(1)
       )
 
@@ -58,7 +58,7 @@ class Ibex35HistoricManager extends Retriever with Stash {
         self ! ReadyToStart(None)
       } { _ =>
         log.info("Starting with initial retrieved")
-        self ! ReadyToStart(Some(Ibex35Historic.fromHit(data.hits.head).date))
+        self ! ReadyToStart(Some(StockHistoric.fromHit(data.hits.head).date))
       }
 
     case ErrorRetrievingData(ex, index, typeName, originalRQ) =>
@@ -79,20 +79,20 @@ class Ibex35HistoricManager extends Retriever with Stash {
   def ready(lastUpdated: Option[DateTime]): Receive = {
 
     case UpdateHistoricData =>
-      log.info(s"Time to update historic data from Ibex35")
+      log.info(s"Time to update historic data from ${stockName}")
       lastUpdated map { date =>
-        scrapyDAO ! RetrieveIbexDataFrom(date)
+        scrapyDAO ! RetrieveStockDataFrom(date)
       } getOrElse
-        scrapyDAO ! RetrieveAllIbexData
+        scrapyDAO ! RetrieveAllStockData
 
-    case IbexDataRetrieved(historicData) =>
-      log.info(s"Data retrieved from Ibex35 to be updated ${historicData.length}")
+    case StockDataRetrieved(historicData) =>
+      log.info(s"Data retrieved from ${stockName} to be updated ${historicData.length}")
 
       if(historicData.nonEmpty) {
         log.info(s"Sending to ES new Data")
         esDAO ! SaveInIndex(
-          Ibex35ESDAO.index,
-          Ibex35ESDAO.Historic.typeName,
+          StockESDAO.index,
+          StockESDAO.Historic.typeName,
           historicData
         )
         val lastDate = historicData.maxBy(_.date.toString).date
@@ -101,8 +101,8 @@ class Ibex35HistoricManager extends Retriever with Stash {
       } else
         context.parent ! UpdateComplete
 
-    case CantRetrieveDataFromIbex35Crawler =>
-      log.info(s"Cant retrieve from Crawler Ibex35 data, will try in $daemonTimeBeforeRetries")
+    case CantRetrieveDataFromCrawler =>
+      log.info(s"Cant retrieve from Crawler ${stockName} data, will try in $daemonTimeBeforeRetries")
       context.system.scheduler.scheduleOnce(daemonTimeBeforeRetries, self, UpdateHistoricData)
 
     case ErrorSavingData(ex, index, typeName, data) =>

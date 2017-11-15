@@ -12,4 +12,7 @@ trait TapiporlaActor extends Actor with ActorLogging {
   val daemonTimeBeforeRetries =
     TapiporlaConfig.Daemon.timeBeforeRetries
 
+  val stockName =
+    TapiporlaConfig.Stock.name
+
 }
