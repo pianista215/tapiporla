@@ -86,7 +86,7 @@ trait ElasticDAO extends TapiporlaActor with Stash {
 
   def indexCreation: CreateIndexDefinition //Index to be created (if already exists we don't check if the mappings are similar)
 
-  val timeBeforeRetries = TapiporlaConfig.ElasticSearch.timeBeforeRetries
+  override val daemonTimeBeforeRetries = TapiporlaConfig.ElasticSearch.timeBeforeRetries
 
   override def preStart() =
     self ! InitElasticDAO
@@ -108,8 +108,8 @@ trait ElasticDAO extends TapiporlaActor with Stash {
 
 
     case ProblemConnectingWithES(e) =>
-      log.error(s"Error initializing ElasticSearch DAO. Trying again in $timeBeforeRetries", e)
-      context.system.scheduler.scheduleOnce(timeBeforeRetries, self, InitElasticDAO)
+      log.error(s"Error initializing ElasticSearch DAO. Trying again in $daemonTimeBeforeRetries", e)
+      context.system.scheduler.scheduleOnce(daemonTimeBeforeRetries, self, InitElasticDAO)
 
 
     case ReadyToListen =>

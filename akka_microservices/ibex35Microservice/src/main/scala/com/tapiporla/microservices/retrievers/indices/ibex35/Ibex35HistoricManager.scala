@@ -1,7 +1,7 @@
 package com.tapiporla.microservices.retrievers.indices.ibex35
 
 import akka.actor.{Props, Stash}
-import com.tapiporla.microservices.retrievers.common.{ElasticDAO, Retriever}
+import com.tapiporla.microservices.retrievers.common.{ElasticDAO, Retriever, TapiporlaConfig}
 import com.tapiporla.microservices.retrievers.common.Retriever.UpdateHistoricData
 import com.tapiporla.microservices.retrievers.common.ElasticDAO._
 import com.tapiporla.microservices.retrievers.indices.ibex35.Ibex35HistoricManager.{InitIbex35Coordinator, ReadyToStart, UpdateComplete}
@@ -62,8 +62,8 @@ class Ibex35HistoricManager extends Retriever with Stash {
       }
 
     case ErrorRetrievingData(ex, index, typeName, originalRQ) =>
-      log.error(s"Can't get initial status from $index / $typeName, retrying in 30 seconds")
-      context.system.scheduler.scheduleOnce(30 seconds, esDAO, originalRQ)
+      log.error(s"Can't get initial status from $index / $typeName, retrying in $daemonTimeBeforeRetries")
+      context.system.scheduler.scheduleOnce(daemonTimeBeforeRetries, esDAO, originalRQ)
 
 
     case ReadyToStart(lastUpdated) =>
@@ -102,13 +102,13 @@ class Ibex35HistoricManager extends Retriever with Stash {
         context.parent ! UpdateComplete
 
     case CantRetrieveDataFromIbex35Crawler =>
-      log.info("Cant retrieve from Crawler Ibex35 data, will try in 30 seconds")
-      context.system.scheduler.scheduleOnce(30 seconds, self, UpdateHistoricData)
+      log.info(s"Cant retrieve from Crawler Ibex35 data, will try in $daemonTimeBeforeRetries")
+      context.system.scheduler.scheduleOnce(daemonTimeBeforeRetries, self, UpdateHistoricData)
 
     case ErrorSavingData(ex, index, typeName, data) =>
       //We are just saving one by one, never two SaveOperations are happening in the same actor at the same time
-      log.info(s"Retrying to save ES in $index / $typeName after $ex in 30 seconds")
-      context.system.scheduler.scheduleOnce(30 seconds, esDAO, SaveInIndex(index, typeName, data))
+      log.info(s"Retrying to save ES in $index / $typeName after $ex in $daemonTimeBeforeRetries")
+      context.system.scheduler.scheduleOnce(daemonTimeBeforeRetries, esDAO, SaveInIndex(index, typeName, data))
 
     case DataSavedConfirmation(index, typeName, data) =>
       log.info(s"Data saved. Calling father to update stats")

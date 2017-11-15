@@ -17,6 +17,7 @@ object TapiporlaConfig {
 
   object Daemon{
     val periodicExecution: FiniteDuration = Duration.fromNanos(daemonConfig.getDuration("periodic-execution").toNanos)
+    val timeBeforeRetries: FiniteDuration = Duration.fromNanos(daemonConfig.getDuration("time-before-retries").toNanos)
   }
 
   object ElasticSearch {

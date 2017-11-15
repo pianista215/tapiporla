@@ -86,8 +86,8 @@ class Ibex35StatManager extends TapiporlaActor with Stash {
 
 
     case ErrorRetrievingData(ex, index, typeName, rq) =>
-      log.error(s"Can't get stat for init from $index / $typeName, retrying in 30 seconds")
-      context.system.scheduler.scheduleOnce(30 seconds, esDAO, rq)
+      log.error(s"Can't get stat for init from $index / $typeName, retrying in $daemonTimeBeforeRetries")
+      context.system.scheduler.scheduleOnce(daemonTimeBeforeRetries, esDAO, rq)
 
     case CheckReadyToStart =>
 
@@ -125,8 +125,8 @@ class Ibex35StatManager extends TapiporlaActor with Stash {
       context.become(ready(consistentDate))
 
     case ErrorDeletingData(ex, index, typeName, rq) =>
-      log.error(s"Can't delete data from $index / $typeName retrying in 30 seconds due to:", ex)
-      context.system.scheduler.scheduleOnce(30 seconds, esDAO, rq)
+      log.error(s"Can't delete data from $index / $typeName retrying in $daemonTimeBeforeRetries due to:", ex)
+      context.system.scheduler.scheduleOnce(daemonTimeBeforeRetries, esDAO, rq)
 
     case _ =>
       stash()
@@ -171,12 +171,12 @@ class Ibex35StatManager extends TapiporlaActor with Stash {
 
 
     case ErrorRetrievingData(ex, index, typeName, rq) =>
-      log.error(s"Can't get data from $index / $typeName, retrying in 30 seconds due to:", ex)
-      context.system.scheduler.scheduleOnce(30 seconds, esDAO, rq)
+      log.error(s"Can't get data from $index / $typeName, retrying in $daemonTimeBeforeRetries due to:", ex)
+      context.system.scheduler.scheduleOnce(daemonTimeBeforeRetries, esDAO, rq)
 
     case ErrorSavingData(ex, index, typeName, data) =>
-      log.error(s"Can't save data in $index / $typeName, retrying in 30 seconds:", ex)
-      context.system.scheduler.scheduleOnce(30 seconds, esDAO, SaveInIndex(index,typeName,data))
+      log.error(s"Can't save data in $index / $typeName, retrying in $daemonTimeBeforeRetries:", ex)
+      context.system.scheduler.scheduleOnce(daemonTimeBeforeRetries, esDAO, SaveInIndex(index,typeName,data))
 
     case DataSavedConfirmation(index, typeName, data) =>
       log.info(s"Saved stats correctly in ES ($index / $typeName): ${data.length} documents")
