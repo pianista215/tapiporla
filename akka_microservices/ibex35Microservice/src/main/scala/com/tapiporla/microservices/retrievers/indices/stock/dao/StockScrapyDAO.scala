@@ -9,8 +9,8 @@ import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.pattern.pipe
 import akka.stream.ActorMaterializer
 import com.tapiporla.microservices.retrievers.common.{TapiporlaActor, TapiporlaConfig}
-import com.tapiporla.microservices.retrievers.common.model.{ScrapyRTDefaultProtocol, ScrapyRTRequest, ScrapyRTResponse}
-import com.tapiporla.microservices.retrievers.indices.stock.dao.StockScrapyDAO.{CantRetrieveDataFromCrawler, StockDataRetrieved, RetrieveAllStockData, RetrieveStockDataFrom}
+import com.tapiporla.microservices.retrievers.common.model.{ScrapyRTDefaultProtocol, ScrapyRTParameters, ScrapyRTRequest, ScrapyRTResponse}
+import com.tapiporla.microservices.retrievers.indices.stock.dao.StockScrapyDAO.{CantRetrieveDataFromCrawler, RetrieveAllStockData, RetrieveStockDataFrom, StockDataRetrieved}
 import com.tapiporla.microservices.retrievers.indices.stock.model.StockHistoric
 import org.joda.time.DateTime
 
@@ -70,11 +70,15 @@ class StockScrapyDAO extends TapiporlaActor with ScrapyRTDefaultProtocol {
     } pipeTo sender
 
   val crawlerId = TapiporlaConfig.Stock.scrapyCrawler
+  val crawlerPath = TapiporlaConfig.Stock.crawlerPath
 
   private def buildRequest(fromDate: Option[DateTime] = None): ScrapyRTRequest =
+    ScrapyRTRequest(crawlerId, start_requests = true, buildParameters(fromDate))
+
+  private def buildParameters(fromDate: Option[DateTime] =  None): ScrapyRTParameters =
     fromDate map { date =>
-      ScrapyRTRequest(crawlerId, start_requests = true, Map("lookup_until_date" -> date.toString(TapiporlaConfig.globalTimeFormat)))
+      ScrapyRTParameters(crawlerPath, Some(date.toString(TapiporlaConfig.globalTimeFormat)))
     } getOrElse
-      ScrapyRTRequest(crawlerId, start_requests = true, Map.empty)
+      ScrapyRTParameters(crawlerPath, None)
 
 }

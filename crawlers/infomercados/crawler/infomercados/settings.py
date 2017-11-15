@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Scrapy settings for ibex35 project
+# Scrapy settings for infomercados project
 #
 # For simplicity, this file contains only settings considered important or
 # commonly used. You can find more settings consulting the documentation:
@@ -9,10 +9,10 @@
 #     http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html
 #     http://scrapy.readthedocs.org/en/latest/topics/spider-middleware.html
 
-BOT_NAME = 'ibex35'
+BOT_NAME = 'infomercados'
 
-SPIDER_MODULES = ['ibex35.spiders']
-NEWSPIDER_MODULE = 'ibex35.spiders'
+SPIDER_MODULES = ['infomercados.spiders']
+NEWSPIDER_MODULE = 'infomercados.spiders'
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
@@ -47,13 +47,13 @@ ROBOTSTXT_OBEY = False
 # Enable or disable spider middlewares
 # See http://scrapy.readthedocs.org/en/latest/topics/spider-middleware.html
 #SPIDER_MIDDLEWARES = {
-#    'ibex35.middlewares.Ibex35SpiderMiddleware': 543,
+#    'infomercados.middlewares.infomercadosSpiderMiddleware': 543,
 #}
 
 # Enable or disable downloader middlewares
 # See http://scrapy.readthedocs.org/en/latest/topics/downloader-middleware.html
 #DOWNLOADER_MIDDLEWARES = {
-#    'ibex35.middlewares.MyCustomDownloaderMiddleware': 543,
+#    'infomercados.middlewares.MyCustomDownloaderMiddleware': 543,
 #}
 
 # Enable or disable extensions
@@ -65,7 +65,7 @@ ROBOTSTXT_OBEY = False
 # Configure item pipelines
 # See http://scrapy.readthedocs.org/en/latest/topics/item-pipeline.html
 #ITEM_PIPELINES = {
-#    'ibex35.pipelines.Ibex35Pipeline': 300,
+#    'infomercados.pipelines.infomercadosPipeline': 300,
 #}
 
 # Enable and configure the AutoThrottle extension (disabled by default)

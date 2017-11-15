@@ -1,7 +1,7 @@
 #!/bin/bash
 
-echo "Launching Ibex35 crawler Docker:"
-sudo docker run --rm -p 9080:9080 -d -v /tmp/logs/:/scrapyrt/project/logs pianista215/ibex35_infomercados:0.1.0
+echo "Launching InfoMercados crawler Docker:"
+sudo docker run --rm -p 9080:9080 -d -v /tmp/logs/:/scrapyrt/project/logs pianista215/infomercados:0.1.0
 
 echo "Launching ES Docker:"
 sudo mkdir -p /data/elasticsearch

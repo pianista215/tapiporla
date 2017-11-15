@@ -42,6 +42,7 @@ object TapiporlaConfig {
     val name: String = stockConfig.getString("name")
     val elasticIndex: String = stockConfig.getString("elasticIndex")
     val scrapyCrawler: String = stockConfig.getString("crawler")
+    val crawlerPath: String = stockConfig.getString("crawlerPath")
   }
 
 }

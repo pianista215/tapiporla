@@ -3,8 +3,8 @@ from datetime import datetime as dt
 import logging
 
 
-class Ibex35Spider(scrapy.Spider):
-    name = "ibex35"
+class InfomercadosSpider(scrapy.Spider):
+    name = "infomercados"
 
     lookup_until_date = None
 
@@ -12,23 +12,30 @@ class Ibex35Spider(scrapy.Spider):
 
     nextPage = 0
 
-    start_urls = [
-        "http://www.infomercados.com/cotizaciones/historico/ibex-35-i%20ib/"
-    ]
+    base = "http://www.infomercados.com/cotizaciones/historico/"
+
+    final_url = None
+
+    start_urls = []
 
     __allowed = ("parameters")
 
     def __init__(self, lookup_until_date=None, *args, **kwargs):
-        super(Ibex35Spider, self).__init__(*args, **kwargs)
+        super(InfomercadosSpider, self).__init__(*args, **kwargs)
         for k, v in kwargs.iteritems():
             assert( k in self.__class__.__allowed )
             setattr(self, k, v)
 
-        if lookup_until_date is not None:
-            self.lookup_until_date = dt.strptime(lookup_until_date, "%d-%m-%Y")
+        #We don't support -a parameters, only parameters by request
 
         if 'lookup_until_date' in self.parameters:
             self.lookup_until_date = dt.strptime(self.parameters['lookup_until_date'], "%d-%m-%Y")
+
+        if 'crawler_path' in self.parameters:
+            self.final_url = "%s/%s/" % (self.base, self.parameters['crawler_path'])
+            self.start_urls.append(self.final_url)
+        else:
+            raise Exception('Crawler path is required to crawl using this docker')
 
     def parseDatetimeInfoMercado(self,string): 
         return dt.strptime(string, "%d/%m/%Y")
@@ -49,20 +56,20 @@ class Ibex35Spider(scrapy.Spider):
 
         self.nextPage = self.nextPage + 1
         emptyPage = True
-        validIbexRow = False
-        ibex_date = None
+        validStockRow = False
+        stock_date = None
         opening_value = None
         close_value = None
         max_value = None
         min_value = None
         volume = None
         found_limit = False #When the limit date is found, don't process more
-        for ibex_row_data in response.css('#cot_historico1').css("tbody").css("tr"):
-            for col_num, ibex_col_data in enumerate(ibex_row_data.css("td::text")):
-                col_value = ibex_col_data.extract().strip()
+        for stock_row_data in response.css('#cot_historico1').css("tbody").css("tr"):
+            for col_num, stock_col_data in enumerate(stock_row_data.css("td::text")):
+                col_value = stock_col_data.extract().strip()
                 if col_num == 0:
-                    validIbexRow = True
-                    ibex_date = None
+                    validStockRow = True
+                    stock_date = None
                     opening_value = None
                     close_value = None
                     max_value = None
@@ -71,13 +78,13 @@ class Ibex35Spider(scrapy.Spider):
                     volume = None
                     if self.is_date(col_value):
                         parsed_date = self.parseDatetimeInfoMercado(col_value)
-                        ibex_date = parsed_date.strftime("%d-%m-%Y")
+                        stock_date = parsed_date.strftime("%d-%m-%Y")
                         if self.lookup_until_date is not None:
                             found_limit = parsed_date <= self.lookup_until_date
                     else:
-                        validIbexRow = False
+                        validStockRow = False
                         
-                elif validIbexRow:
+                elif validStockRow:
                     if col_num == 1:
                         opening_value = self.strFloat(col_value)
                     elif col_num == 2: 
@@ -89,10 +96,10 @@ class Ibex35Spider(scrapy.Spider):
                     elif col_num == 5:
                         volume = self.strFloat(col_value)
 
-            if validIbexRow and not found_limit:
+            if validStockRow and not found_limit:
                 emptyPage = False
                 yield {
-                    'date': ibex_date,
+                    'date': stock_date,
                     'opening_value': opening_value,
                     'close_value': close_value,
                     'max_value': max_value,
@@ -103,4 +110,4 @@ class Ibex35Spider(scrapy.Spider):
         next_page_data = {'N': "%d" % self.nextPage}
 
         if not emptyPage:
-            yield scrapy.FormRequest(url=self.start_urls[0], method="POST", formdata={'N': "%d" % self.nextPage}, callback = self.parse)
+            yield scrapy.FormRequest(url=self.final_url, method="POST", formdata={'N': "%d" % self.nextPage}, callback = self.parse)
