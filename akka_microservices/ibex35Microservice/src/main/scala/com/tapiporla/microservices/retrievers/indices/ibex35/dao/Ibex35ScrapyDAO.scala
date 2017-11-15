@@ -8,7 +8,7 @@ import akka.http.scaladsl.settings.ConnectionPoolSettings
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.pattern.pipe
 import akka.stream.ActorMaterializer
-import com.tapiporla.microservices.retrievers.common.TapiporlaConfig
+import com.tapiporla.microservices.retrievers.common.{TapiporlaActor, TapiporlaConfig}
 import com.tapiporla.microservices.retrievers.common.model.{ScrapyRTDefaultProtocol, ScrapyRTRequest, ScrapyRTResponse}
 import com.tapiporla.microservices.retrievers.indices.ibex35.dao.Ibex35ScrapyDAO.{CantRetrieveDataFromIbex35Crawler, IbexDataRetrieved, RetrieveAllIbexData, RetrieveIbexDataFrom}
 import com.tapiporla.microservices.retrievers.indices.ibex35.model.Ibex35Historic
@@ -19,17 +19,17 @@ import scala.concurrent.duration._
 
 object Ibex35ScrapyDAO {
 
-  object RetrieveAllIbexData
+  case object RetrieveAllIbexData
   case class RetrieveIbexDataFrom(date: DateTime)
   case class IbexDataRetrieved(ibexData: Seq[Ibex35Historic])
-  object CantRetrieveDataFromIbex35Crawler
+  case object CantRetrieveDataFromIbex35Crawler
 }
 
 
 /**
   * In charge of retrieve data from the ScrapyRT endpoint
   */
-class Ibex35ScrapyDAO extends Actor with ActorLogging with ScrapyRTDefaultProtocol {
+class Ibex35ScrapyDAO extends TapiporlaActor with ScrapyRTDefaultProtocol {
 
   val endpoint = TapiporlaConfig.ScrapyRT.endpoint
   val http = Http(context.system)
@@ -43,7 +43,6 @@ class Ibex35ScrapyDAO extends Actor with ActorLogging with ScrapyRTDefaultProtoc
     case RetrieveIbexDataFrom(date) =>
       retrieveIbexDataFrom(Some(date))
 
-    case _ => log.error("Unknown message")
   }
 
   private def retrieveIbexDataFrom(fromDate: Option[DateTime] = None) =
@@ -66,14 +65,14 @@ class Ibex35ScrapyDAO extends Actor with ActorLogging with ScrapyRTDefaultProtoc
       IbexDataRetrieved(items)
     } recover {
       case e: Exception =>
-        log.error(s"Error retrieving data from Crawler: $e.")
+        log.error(s"Error retrieving data from Crawler:", e)
         CantRetrieveDataFromIbex35Crawler
-    } pipeTo (sender)
+    } pipeTo sender
 
   private def buildRequest(fromDate: Option[DateTime] = None): ScrapyRTRequest =
     fromDate map { date =>
-      ScrapyRTRequest("ibex35", true, Map("lookup_until_date" -> date.toString("dd-MM-yyyy")))
+      ScrapyRTRequest("ibex35", start_requests = true, Map("lookup_until_date" -> date.toString(TapiporlaConfig.globalTimeFormat)))
     } getOrElse
-      ScrapyRTRequest("ibex35", true, Map.empty)
+      ScrapyRTRequest("ibex35", start_requests = true, Map.empty)
 
 }

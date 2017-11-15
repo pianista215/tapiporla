@@ -2,7 +2,6 @@ package com.tapiporla.microservices.retrievers.common.stats
 
 import com.typesafe.scalalogging.LazyLogging
 import org.joda.time.DateTime
-import org.slf4j.{Logger, LoggerFactory}
 
 import scala.annotation.tailrec
 
@@ -13,79 +12,70 @@ import scala.annotation.tailrec
   * MM40
   * MM10
   */
-object StatsGenerator extends LazyLogging{
+object StatsGenerator extends LazyLogging {
 
-  type MMDefition = (String, Int)
+  object MMDefinition {
 
-  val MM200 = ("MM200", 200)
-  val MM100 = ("MM100", 100)
-  val MM40 = ("MM40", 40)
-  val MM20 = ("MM20", 20)
+    def from(numberOfItems: Int): MMDefinition =
+      MMDefinition(s"MM$numberOfItems", numberOfItems)
 
-  //If not enough elements are provided we work with the provided elements
-  val START_ELEMENTS_RECOMMENDED: Int = MM200._2 * 2
-
-  //TODO: Create traits to inherit????
-  type Stat = (DateTime, String, BigDecimal)
-  type Data = (DateTime, BigDecimal)
-
-  /**
-    * It will generate Stats using the previous data if needed
-    * @param data
-    * @param previousData
-    * @return
-    */
-  def generateStatsFor(data: Seq[Data], previousData: Seq[Data]): Seq[Stat] = {
-    val dataByDate = data.sortBy(_._1.toDate)
-    val previousByDate = data.sortBy(_._1.toDate)
-
-    generateMM200From(dataByDate, previousByDate takeRight MM200._2 - 1) ++
-      generateMM100From(dataByDate, previousByDate takeRight MM100._2 -1) ++
-      generateMM40From(dataByDate, previousByDate takeRight MM40._2 - 1) ++
-      generateMM20From(dataByDate, previousByDate takeRight MM20._2 -1)
   }
 
-  def generateMM200From(data: Seq[Data], previousData: Seq[Data]): Seq[Stat] =
-    generateMM(data, previousData, MM200._2) map {item => (item._1, MM200._1, item._2)}
+  case class MMDefinition(identifier: String, numberOfItems: Int)
 
-  def generateMM100From(data: Seq[Data], previousData: Seq[Data]): Seq[Stat] =
-    generateMM(data, previousData, MM100._2) map {item => (item._1, MM100._1, item._2)}
+  case class StatGenerated(statType: String, date: DateTime, value: BigDecimal)
+  case class StatDataInput(date: DateTime, value: BigDecimal)
 
-  def generateMM40From(data: Seq[Data], previousData: Seq[Data]): Seq[Stat] =
-    generateMM(data, previousData, MM40._2) map {item => (item._1, MM40._1, item._2)}
 
-  def generateMM20From(data: Seq[Data], previousData: Seq[Data]): Seq[Stat] =
-    generateMM(data, previousData, MM20._2) map {item => (item._1, MM20._1, item._2)}
+  def generateMultipleMMs(
+                           initial: Seq[StatDataInput],
+                           previousData: Seq[StatDataInput],
+                           mmsToProcess: Seq[MMDefinition]
+                         ) = {
 
-  def generateMM(initial: Seq[Data], previousData: Seq[Data], number: Int): Seq[Data] = {
+
+    val dataByDate = initial.sortBy(_.date.toDate)
+    val previousByDate = previousData.sortBy(_.date.toDate)
+
+    mmsToProcess flatMap { mm =>
+      generateMM(dataByDate, previousByDate takeRight mm.numberOfItems - 1, mm)
+    }
+  }
+
+
+  protected def generateMM(
+                  initial: Seq[StatDataInput],
+                  previousData: Seq[StatDataInput],
+                  mm: MMDefinition
+                ): Seq[StatGenerated] = {
 
     @tailrec
-    def helper(pending: Seq[Data], passed: Seq[Data], accum: Seq[Data]): Seq[Data] = {
-      if(pending.isEmpty)
+    def helper(pending: Seq[StatDataInput], passed: Seq[StatDataInput], accum: Seq[StatGenerated]): Seq[StatGenerated] = {
+      if (pending.isEmpty)
         accum
       else {
         val newChunk =
-          if(passed.length < number) //(number == initial length elements)
-             passed :+ pending.head
+          if (passed.length < mm.numberOfItems) //(number == initial length elements)
+            passed :+ pending.head
           else
             (passed drop 1) :+ pending.head
         helper(
           pending.tail,
           newChunk,
-          accum :+ (pending.head._1, mean(newChunk map (_._2)))
+          accum :+ StatGenerated(mm.identifier, pending.head.date, StatsUtils.mean(newChunk map (_.value)))
         )
       }
 
     }
 
     //Complete first chunk (Without enough data, to compute the means, it should be > 0 only in the first iteration of the APP)
-    val remainingToCompleteChunk = number - 1 - previousData.length
-    if(remainingToCompleteChunk > 0)
+    val remainingToCompleteChunk = mm.numberOfItems - 1 - previousData.length
+    if (remainingToCompleteChunk > 0)
       logger.warn("Warning, there are not enough previous data to compute the mean (If you are seeing that in the first iteration of the stats. Ignore it)")
+
+
     helper(initial drop remainingToCompleteChunk, previousData ++ (initial take remainingToCompleteChunk), Seq())
   }
 
-  def mean(data: Seq[BigDecimal]): BigDecimal =
-    data.sum / data.length
 
 }

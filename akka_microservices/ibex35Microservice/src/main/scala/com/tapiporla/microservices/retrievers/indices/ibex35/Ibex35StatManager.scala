@@ -5,9 +5,10 @@ import com.sksamuel.elastic4s.ElasticDsl.termQuery
 import com.sksamuel.elastic4s.searches.RichSearchResponse
 import com.sksamuel.elastic4s.searches.queries.term.TermQueryDefinition
 import com.tapiporla.microservices.retrievers.common.ElasticDAO._
+import com.tapiporla.microservices.retrievers.common.TapiporlaActor
 import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator
-import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator.MMDefition
-import com.tapiporla.microservices.retrievers.indices.ibex35.Ibex35StatManager.{CheckReadyToStart, InitIbex35StatManager, UpdateStats, StatsUpdatedSuccessfully}
+import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator.MMDefinition
+import com.tapiporla.microservices.retrievers.indices.ibex35.Ibex35StatManager._
 import com.tapiporla.microservices.retrievers.indices.ibex35.dao.Ibex35ESDAO
 import com.tapiporla.microservices.retrievers.indices.ibex35.model.{Ibex35Historic, Ibex35Stat}
 import org.elasticsearch.search.sort.SortOrder
@@ -17,10 +18,29 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 
 object Ibex35StatManager {
-  object InitIbex35StatManager //Called after Ibex35HistoricManager is updated to avoid race conditions
-  object UpdateStats //Called to Update stats (after Ibex35HistoricManager has inserted new data)
-  object CheckReadyToStart //Called to check if we have all the data needed to Start the manager
-  object StatsUpdatedSuccessfully //When stats has been generated succesfully
+  case object InitIbex35StatManager //Called after Ibex35HistoricManager is updated to avoid race conditions
+  case object UpdateStats //Called to Update stats (after Ibex35HistoricManager has inserted new data)
+  case object CheckReadyToStart //Called to check if we have all the data needed to Start the manager
+  case object StatsUpdatedSuccessfully //When stats has been generated succesfully
+
+  object MMStatus {
+    def unchecked(mm: MMDefinition): MMStatus = MMStatus(mm, false, None)
+  }
+
+  case class MMStatus(mm: MMDefinition, checked: Boolean, lastUpdate: Option[DateTime]) {
+
+    def checked(updatedDate: Option[DateTime]) =
+      copy(lastUpdate = updatedDate, checked = true)
+
+    override def toString: String =
+      s"${mm.identifier} checked: $checked"
+
+  }
+
+
+  val MMToCollect: Seq[MMDefinition] =
+    Seq(200, 100, 40, 20) map StatsGenerator.MMDefinition.from //TODO: To config
+
 }
 
 /**
@@ -29,7 +49,7 @@ object Ibex35StatManager {
   * The flow is: initial -> gettingInitialStatus -> waitingForDeletions -> ready -> updating -> ready...
   *
   */
-class Ibex35StatManager extends Actor with ActorLogging with Stash {
+class Ibex35StatManager extends TapiporlaActor with Stash {
 
   val esDAO =
     context.actorOf(Props[Ibex35ESDAO], name = "Ibex35ESDAO_Manager")
@@ -42,65 +62,43 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
       log.info("Recovering initial status")
 
       //Recover MM*** status
-      esDAO ! retrieveLastMMUpdated(StatsGenerator.MM200)
-      esDAO ! retrieveLastMMUpdated(StatsGenerator.MM100)
-      esDAO ! retrieveLastMMUpdated(StatsGenerator.MM40)
-      esDAO ! retrieveLastMMUpdated(StatsGenerator.MM20)
-      context.become(gettingInitialStatus((false, None), (false, None), (false, None), (false, None)))
+      MMToCollect foreach { mm =>
+        esDAO ! retrieveLastMMUpdated(mm)
+      }
+
+      context.become(gettingInitialStatus(MMToCollect map (mm => MMStatus.unchecked(mm))))
 
     case _ =>
       stash()
   }
 
-  type CheckedMM = (Boolean, Option[DateTime])
-
   def gettingInitialStatus(
-                          lastMM200: CheckedMM,
-                          lastMM100: CheckedMM,
-                          lastMM40: CheckedMM,
-                          lastMM20: CheckedMM
+                            statuses: Seq[MMStatus]
                           ): Receive = {
 
-    case DataRetrieved(_, _, data, rq) if rq.where.nonEmpty =>
-      rq.where.get match {
-        case TermQueryDefinition(Ibex35ESDAO.Stats.statsAttr, StatsGenerator.MM200._1, _, _) =>
-            context.become(
-                gettingInitialStatus(generateCheckedMM(data), lastMM100, lastMM40, lastMM20)
-              )
-
-        case TermQueryDefinition(Ibex35ESDAO.Stats.statsAttr, StatsGenerator.MM100._1, _, _) =>
+    case DataRetrieved(_, _, data, rq) if rq.where.nonEmpty => rq.where.get match {
+        case TermQueryDefinition(Ibex35ESDAO.Stats.statsAttr, mmValue: String, _, _) =>
           context.become(
-            gettingInitialStatus(lastMM200, generateCheckedMM(data), lastMM40, lastMM20)
+            gettingInitialStatus(updateMMStatuses(statuses, data, mmValue))
           )
-
-        case TermQueryDefinition(Ibex35ESDAO.Stats.statsAttr, StatsGenerator.MM40._1, _, _) =>
-          context.become(
-            gettingInitialStatus(lastMM200, lastMM100, generateCheckedMM(data), lastMM20)
-          )
-
-        case TermQueryDefinition(Ibex35ESDAO.Stats.statsAttr, StatsGenerator.MM20._1, _, _) =>
-          context.become(
-            gettingInitialStatus(lastMM200, lastMM100, lastMM40, generateCheckedMM(data))
-          )
-
-        case _ => log.error("Unknown where to threat!!")
+          self ! CheckReadyToStart
       }
-      self ! CheckReadyToStart
 
 
     case ErrorRetrievingData(ex, index, typeName, rq) =>
-      log.error(s"Can't get stat for init from $index / $typeName, retrying in 30 seconds")
-      context.system.scheduler.scheduleOnce(30 seconds, esDAO, rq)
+      log.error(s"Can't get stat for init from $index / $typeName, retrying in $daemonTimeBeforeRetries")
+      context.system.scheduler.scheduleOnce(daemonTimeBeforeRetries, esDAO, rq)
 
     case CheckReadyToStart =>
-      if(lastMM200._1 && lastMM100._1 && lastMM40._1 && lastMM20._1){
+
+      if(statuses.forall(_.checked)){
         unstashAll()
-        val retrievedDates = lastMM200._2 ++ lastMM100._2 ++ lastMM40._2 ++ lastMM20._2 toSeq
+        val retrievedDates: Seq[DateTime] = statuses.flatMap(_.lastUpdate)
 
         log.info("Retrieved last updated fields")
 
         val consistentDate =
-          if(retrievedDates.length == 4)
+          if(retrievedDates.length == MMToCollect.length)
             Some(lastConsistentDate(retrievedDates))
           else
             None
@@ -111,7 +109,7 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
         context.become(waitingForDeletions(consistentDate))
 
       } else
-        log.info(s"Not ready to start. Stats recovered: MM200:${lastMM200._1} MM100:${lastMM100._1} MM40:${lastMM40._1} MM20:${lastMM20._1}")
+        log.info(s"Not ready to start. Stats recovered: $statuses")
 
 
     case _ =>
@@ -127,8 +125,8 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
       context.become(ready(consistentDate))
 
     case ErrorDeletingData(ex, index, typeName, rq) =>
-      log.error(s"Can't delete data from $index / $typeName retrying in 30 seconds due to: $ex")
-      context.system.scheduler.scheduleOnce(30 seconds, esDAO, rq)
+      log.error(s"Can't delete data from $index / $typeName retrying in $daemonTimeBeforeRetries due to:", ex)
+      context.system.scheduler.scheduleOnce(daemonTimeBeforeRetries, esDAO, rq)
 
     case _ =>
       stash()
@@ -141,8 +139,6 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
       esDAO ! retrieveIbexHistoricFromDate(lastUpdated)
       context.become(updating(lastUpdated, Seq()))
 
-    case _ =>
-      log.error("Unknown message while ready")
   }
 
   def updating(lastUpdated: Option[DateTime], lastPackageProcess: Seq[Ibex35Historic]): Receive = {
@@ -154,10 +150,12 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
         val ibex35HistoricRetrieved = data.hits.map(Ibex35Historic.fromHit)
 
         val stats: Seq[Ibex35Stat] =
-          StatsGenerator.generateStatsFor(
+          StatsGenerator.generateMultipleMMs(
             ibex35HistoricRetrieved.map(_.toStatInputData),
-            lastPackageProcess.map(_.toStatInputData)
+            lastPackageProcess.map(_.toStatInputData),
+            MMToCollect
           ) map Ibex35Stat.fromStat
+        
 
         val updatedDate = stats.last.date
 
@@ -173,12 +171,12 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
 
 
     case ErrorRetrievingData(ex, index, typeName, rq) =>
-      log.error(s"Can't get data from $index / $typeName, retrying in 30 seconds due to: $ex")
-      context.system.scheduler.scheduleOnce(30 seconds, esDAO, rq)
+      log.error(s"Can't get data from $index / $typeName, retrying in $daemonTimeBeforeRetries due to:", ex)
+      context.system.scheduler.scheduleOnce(daemonTimeBeforeRetries, esDAO, rq)
 
     case ErrorSavingData(ex, index, typeName, data) =>
-      log.error(s"Can't save data in $index / $typeName, retrying in 30 seconds: $ex")
-      context.system.scheduler.scheduleOnce(30 seconds, esDAO, SaveInIndex(index,typeName,data))
+      log.error(s"Can't save data in $index / $typeName, retrying in $daemonTimeBeforeRetries:", ex)
+      context.system.scheduler.scheduleOnce(daemonTimeBeforeRetries, esDAO, SaveInIndex(index,typeName,data))
 
     case DataSavedConfirmation(index, typeName, data) =>
       log.info(s"Saved stats correctly in ES ($index / $typeName): ${data.length} documents")
@@ -191,14 +189,13 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
         esDAO ! retrieveIbexHistoricFromDate(lastUpdated)
       }
 
-    case _ =>
-      log.error("Unknown message while updating")
   }
 
 
   import com.sksamuel.elastic4s.ElasticDsl._
 
-  private val CHUNKS_SIZE = StatsGenerator.START_ELEMENTS_RECOMMENDED
+  private val CHUNKS_SIZE = MMToCollect.maxBy(_.numberOfItems).numberOfItems * 2
+
   /**
     * To avoid too much data from Database, we are going to process by steps the stats
     * @param date
@@ -220,11 +217,11 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
     * @param mm
     * @return
     */
-  private def retrieveLastMMUpdated(mm: MMDefition): RetrieveAllFromIndexSorted =
+  private def retrieveLastMMUpdated(mm: MMDefinition): RetrieveAllFromIndexSorted =
     RetrieveAllFromIndexSorted(
       Ibex35ESDAO.index,
       Ibex35ESDAO.Stats.typeName,
-      Some(termQuery(Ibex35ESDAO.Stats.statsAttr, mm._1)),
+      Some(termQuery(Ibex35ESDAO.Stats.statsAttr, mm.identifier)),
       Some(fieldSort(Ibex35ESDAO.date).order(SortOrder.DESC)),
       Some(1)
     )
@@ -254,11 +251,26 @@ class Ibex35StatManager extends Actor with ActorLogging with Stash {
   private def lastConsistentDate(dates: Seq[DateTime]): DateTime =
     new DateTime(dates.map(_.toDate).min)
 
-  private def generateCheckedMM(rs: RichSearchResponse): CheckedMM =
-    if(rs.hits.length > 0)
-      (true, Some(Ibex35Stat.fromHit(rs.hits.head).date))
+  private def updateMMStatuses(
+                             oldStatuses: Seq[MMStatus],
+                             esResponse: RichSearchResponse,
+                             mmFoundFilter: String
+                            ): Seq[MMStatus] = {
+
+    oldStatuses map { status =>
+      if(status.mm.identifier == mmFoundFilter)
+        generateCheckedMM(status, esResponse)
+      else
+        status
+    }
+
+  }
+
+  private def generateCheckedMM(status: MMStatus, rs: RichSearchResponse): MMStatus =
+    if(rs.hits.nonEmpty)
+      status.checked(Some(Ibex35Stat.fromHit(rs.hits.head).date))
     else
-      (true, None)
+      status.checked(None)
 
 
 }

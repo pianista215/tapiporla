@@ -68,9 +68,9 @@ object ElasticDAO {
                                   originalRQ: RetrieveAllFromIndexSorted
                                 )
 
-  object InitElasticDAO
+  case object InitElasticDAO
   case class ProblemConnectingWithES(e: Exception)
-  object ReadyToListen
+  case object ReadyToListen
 
   private val settings = Settings.builder()
     .put("cluster.name", TapiporlaConfig.ElasticSearch.clusterName)
@@ -82,11 +82,14 @@ object ElasticDAO {
 }
 
 
-trait ElasticDAO extends Actor with ActorLogging with Stash{
+trait ElasticDAO extends TapiporlaActor with Stash {
 
   def indexCreation: CreateIndexDefinition //Index to be created (if already exists we don't check if the mappings are similar)
 
-  self ! InitElasticDAO
+  override val daemonTimeBeforeRetries = TapiporlaConfig.ElasticSearch.timeBeforeRetries
+
+  override def preStart() =
+    self ! InitElasticDAO
 
   override def receive = initial
 
@@ -101,12 +104,12 @@ trait ElasticDAO extends Actor with ActorLogging with Stash{
         case e: Exception =>
           ProblemConnectingWithES(e)
 
-      } pipeTo (self)
+      } pipeTo self
 
 
     case ProblemConnectingWithES(e) =>
-      log.error(s"Error initializing ElasticSearch DAO ${self.path.name} :$e. Trying again in 30 seconds")
-      context.system.scheduler.scheduleOnce(30 seconds, self, InitElasticDAO)
+      log.error(s"Error initializing ElasticSearch DAO. Trying again in $daemonTimeBeforeRetries", e)
+      context.system.scheduler.scheduleOnce(daemonTimeBeforeRetries, self, InitElasticDAO)
 
 
     case ReadyToListen =>
@@ -130,9 +133,9 @@ trait ElasticDAO extends Actor with ActorLogging with Stash{
         DataSavedConfirmation(index, typeName, jsonDocs)
       } recover {
         case e: Exception =>
-          log.error(s"Impossible to save in index $index $typeName ${jsonDocs.length} docs: $e")
+          log.error(s"Impossible to save in index $index $typeName ${jsonDocs.length} docs", e)
           ErrorSavingData(e, index, typeName, jsonDocs)
-      } pipeTo(sender)
+      } pipeTo sender
 
     case rq @ RetrieveAllFromIndexSorted(index, typeName, where, sort, limitValue) =>
       client.execute {
@@ -146,9 +149,9 @@ trait ElasticDAO extends Actor with ActorLogging with Stash{
         DataRetrieved(index, typeName, result, rq)
       } recover {
         case e: Exception =>
-          log.error(s"Impossible to retrieve from index $index $typeName all sorted: $e")
+          log.error(s"Impossible to retrieve from index $index $typeName all sorted", e)
           ErrorRetrievingData(e, index, typeName, rq)
-      } pipeTo(sender)
+      } pipeTo sender
 
     case rq @ DeleteFromIndex(index, typeName, where) =>
       client.execute {
@@ -163,12 +166,10 @@ trait ElasticDAO extends Actor with ActorLogging with Stash{
         DeleteConfirmation(index, typeName, rq)
       } recover {
         case e: Exception =>
-          log.error(s"Impossible to delete in index $index $typeName: $e")
+          log.error(s"Impossible to delete in index $index $typeName", e)
           ErrorDeletingData(e, index, typeName, rq)
-      } pipeTo(sender)
+      } pipeTo sender
 
-    case _ =>
-      log.error("Unknown message")
   }
 
 }
