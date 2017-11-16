@@ -35,7 +35,7 @@ object TapiporlaConfig {
 
   object Stats {
     import scala.collection.JavaConverters._
-    val mmGeneration: Seq[Int] = statsConfig.getIntList("mmGeneration").asScala.map{x => x.intValue()}
+    val mmGeneration: Seq[Int] = statsConfig.getIntList("mmGeneration").asScala.map(_.intValue())
   }
 
   object Stock {
