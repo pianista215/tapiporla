@@ -79,14 +79,14 @@ class StockHistoricManager extends Retriever with Stash {
   def ready(lastUpdated: Option[DateTime]): Receive = {
 
     case UpdateHistoricData =>
-      log.info(s"Time to update historic data from ${stockName}")
+      log.info(s"Time to update historic data from $stockName")
       lastUpdated map { date =>
         scrapyDAO ! RetrieveStockDataFrom(date)
       } getOrElse
         scrapyDAO ! RetrieveAllStockData
 
     case StockDataRetrieved(historicData) =>
-      log.info(s"Data retrieved from ${stockName} to be updated ${historicData.length}")
+      log.info(s"Data retrieved from $stockName to be updated ${historicData.length}")
 
       if(historicData.nonEmpty) {
         log.info(s"Sending to ES new Data")
@@ -102,7 +102,7 @@ class StockHistoricManager extends Retriever with Stash {
         context.parent ! UpdateComplete
 
     case CantRetrieveDataFromCrawler =>
-      log.info(s"Cant retrieve from Crawler ${stockName} data, will try in $daemonTimeBeforeRetries")
+      log.info(s"Cant retrieve from Crawler $stockName data, will try in $daemonTimeBeforeRetries")
       context.system.scheduler.scheduleOnce(daemonTimeBeforeRetries, self, UpdateHistoricData)
 
     case ErrorSavingData(ex, index, typeName, data) =>

@@ -135,7 +135,7 @@ class StockStatManager extends TapiporlaActor with Stash {
   def ready(lastUpdated: Option[DateTime]): Receive = {
 
     case UpdateStats =>
-      log.info(s"Time to update stats from ${stockName}")
+      log.info(s"Time to update stats from $stockName")
       esDAO ! retrieveStockHistoricFromDate(lastUpdated)
       context.become(updating(lastUpdated, Seq()))
 
