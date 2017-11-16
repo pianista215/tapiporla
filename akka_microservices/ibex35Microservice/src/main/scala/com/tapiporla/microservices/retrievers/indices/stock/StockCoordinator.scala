@@ -9,16 +9,20 @@ import com.tapiporla.microservices.retrievers.indices.stock.StockStatManager.Sta
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
+object StockCoordinator {
+  def props(): Props = Props(new StockCoordinator())
+}
+
 /**
   * Chief actor in charge of coordination between Historic Manager and Stat Manager
   */
 class StockCoordinator extends TapiporlaActor {
 
   val historicManager =
-    context.actorOf(Props[StockHistoricManager], name = s"${stockName}HistoricManager")
+    context.actorOf(StockHistoricManager.props(), name = s"${stockName}HistoricManager")
 
   val statManager =
-    context.actorOf(Props[StockStatManager], name = s"${stockName}StatManager")
+    context.actorOf(StockStatManager.props(), name = s"${stockName}StatManager")
 
   val executionPeriod: FiniteDuration = TapiporlaConfig.Daemon.periodicExecution
 

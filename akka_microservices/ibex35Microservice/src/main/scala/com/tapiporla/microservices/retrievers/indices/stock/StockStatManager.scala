@@ -23,6 +23,8 @@ object StockStatManager {
   case object CheckReadyToStart //Called to check if we have all the data needed to Start the manager
   case object StatsUpdatedSuccessfully //When stats has been generated succesfully
 
+  def props(): Props = Props(new StockStatManager())
+
   object MMStatus {
     def unchecked(mm: MMDefinition): MMStatus = MMStatus(mm, false, None)
   }
@@ -52,7 +54,7 @@ object StockStatManager {
 class StockStatManager extends TapiporlaActor with Stash {
 
   val esDAO =
-    context.actorOf(Props[StockESDAO], name = s"${stockName}ESDAO_Manager")
+    context.actorOf(StockESDAO.props(), name = s"${stockName}ESDAO_Manager")
 
   override def receive: Receive = initial
 

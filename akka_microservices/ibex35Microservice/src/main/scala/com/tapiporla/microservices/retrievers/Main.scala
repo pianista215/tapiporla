@@ -8,7 +8,7 @@ object Main {
   def main(args: Array[String]): Unit = {
 
     val system = ActorSystem("retrievers")
-    val testRetriever = system.actorOf(Props[StockCoordinator])
+    val testRetriever = system.actorOf(StockCoordinator.props())
 
   }
 

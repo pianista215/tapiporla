@@ -1,6 +1,6 @@
 package com.tapiporla.microservices.retrievers.indices.stock.dao
 
-import akka.actor.{Actor, ActorLogging}
+import akka.actor.{Actor, ActorLogging, Props}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.{HttpMethods, HttpRequest, RequestEntity}
@@ -23,6 +23,8 @@ object StockScrapyDAO {
   case class RetrieveStockDataFrom(date: DateTime)
   case class StockDataRetrieved(stockData: Seq[StockHistoric])
   case object CantRetrieveDataFromCrawler
+
+  def props(): Props = Props(new StockScrapyDAO())
 }
 
 

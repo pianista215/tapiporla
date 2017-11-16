@@ -1,5 +1,6 @@
 package com.tapiporla.microservices.retrievers.indices.stock.dao
 
+import akka.actor.Props
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.indexes.CreateIndexDefinition
 import com.tapiporla.microservices.retrievers.common.{ElasticDAO, TapiporlaConfig}
@@ -22,6 +23,8 @@ object StockESDAO {
     val statsAttr = "stats_attribute"
     val statsValue = "stats_value"
   }
+
+  def props(): Props = Props(new StockESDAO())
 
 }
 

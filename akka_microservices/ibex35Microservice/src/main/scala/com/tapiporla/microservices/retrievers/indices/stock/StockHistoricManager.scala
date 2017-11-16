@@ -20,6 +20,8 @@ object StockHistoricManager {
   case object InitCoordinator
   case class ReadyToStart(lastUpdated: Option[DateTime])
   case object UpdateComplete
+
+  def props(): Props = Props(new StockHistoricManager())
 }
 
 /**
@@ -29,10 +31,10 @@ object StockHistoricManager {
 class StockHistoricManager extends Retriever with Stash {
 
   val esDAO =
-    context.actorOf(Props[StockESDAO], name = s"${stockName}ESDAO_Historic")
+    context.actorOf(StockESDAO.props(), name = s"${stockName}ESDAO_Historic")
 
   val scrapyDAO =
-    context.actorOf(Props[StockScrapyDAO], name = s"${stockName}ScrapyDAO_Historic")
+    context.actorOf(StockScrapyDAO.props(), name = s"${stockName}ScrapyDAO_Historic")
 
   override def preStart() =
     self ! InitCoordinator
