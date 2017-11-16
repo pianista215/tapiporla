@@ -1,18 +1,17 @@
 package com.tapiporla.microservices.retrievers.indices.stock
 
 import akka.actor.{Props, Stash}
-import com.tapiporla.microservices.retrievers.common.{ElasticDAO, Retriever, TapiporlaConfig}
-import com.tapiporla.microservices.retrievers.common.Retriever.UpdateHistoricData
 import com.tapiporla.microservices.retrievers.common.ElasticDAO._
+import com.tapiporla.microservices.retrievers.common.Retriever
+import com.tapiporla.microservices.retrievers.common.Retriever.UpdateHistoricData
 import com.tapiporla.microservices.retrievers.indices.stock.StockHistoricManager.{InitCoordinator, ReadyToStart, UpdateComplete}
-import com.tapiporla.microservices.retrievers.indices.stock.dao.StockScrapyDAO.{CantRetrieveDataFromCrawler, StockDataRetrieved, RetrieveAllStockData, RetrieveStockDataFrom}
+import com.tapiporla.microservices.retrievers.indices.stock.dao.StockScrapyDAO.{CantRetrieveDataFromCrawler, RetrieveAllStockData, RetrieveStockDataFrom, StockDataRetrieved}
 import com.tapiporla.microservices.retrievers.indices.stock.dao.{StockESDAO, StockScrapyDAO}
 import com.tapiporla.microservices.retrievers.indices.stock.model.StockHistoric
 import org.elasticsearch.search.sort.SortOrder
 import org.joda.time.DateTime
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
 
 
 

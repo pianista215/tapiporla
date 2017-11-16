@@ -1,13 +1,12 @@
 package com.tapiporla.microservices.retrievers.indices.stock
 
-import akka.actor.{Actor, ActorLogging, Props, Stash}
-import com.sksamuel.elastic4s.ElasticDsl.termQuery
+import akka.actor.{Props, Stash}
 import com.sksamuel.elastic4s.searches.RichSearchResponse
 import com.sksamuel.elastic4s.searches.queries.term.TermQueryDefinition
 import com.tapiporla.microservices.retrievers.common.ElasticDAO._
-import com.tapiporla.microservices.retrievers.common.{TapiporlaActor, TapiporlaConfig}
 import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator
 import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator.MMDefinition
+import com.tapiporla.microservices.retrievers.common.{TapiporlaActor, TapiporlaConfig}
 import com.tapiporla.microservices.retrievers.indices.stock.StockStatManager._
 import com.tapiporla.microservices.retrievers.indices.stock.dao.StockESDAO
 import com.tapiporla.microservices.retrievers.indices.stock.model.{StockHistoric, StockStat}
@@ -15,7 +14,6 @@ import org.elasticsearch.search.sort.SortOrder
 import org.joda.time.DateTime
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
 
 object StockStatManager {
   case object InitStatManager //Called after StockHistoricManager is updated to avoid race conditions
@@ -138,8 +136,29 @@ class StockStatManager extends TapiporlaActor with Stash {
 
     case UpdateStats =>
       log.info(s"Time to update stats from $stockName")
-      esDAO ! retrieveStockHistoricFromDate(lastUpdated)
-      context.become(updating(lastUpdated, Seq()))
+
+      lastUpdated.fold {
+        //No previous historic data
+        log.info("Starting stats from Scratch")
+        esDAO ! retrieveStockHistoricFromDate(lastUpdated)
+        context.become(updating(lastUpdated, Seq()))
+      }{ _ =>
+        log.info(s"Retrieving last historic data, to start computing stats from the date $lastUpdated")
+        //Retrieve last historic retrieved, to compute stats in next iteration
+        esDAO ! retrieveStockHistoricUntilDate(lastUpdated)
+      }
+
+
+    //We need to retrieve previous historic data, to compute the stats in next step
+    case DataRetrieved(_, _, data, _) =>
+        log.info(s"Retrieved previous historic data from $lastUpdated: ${data.hits.length} data")
+        esDAO ! retrieveStockHistoricFromDate(lastUpdated)
+        context.become(updating(lastUpdated, data.hits.map(StockHistoric.fromHit).reverse))
+
+
+    case ErrorRetrievingData(ex, index, typeName, rq) =>
+      log.error(s"Can't get stats until $lastUpdated from $index / $typeName, retrying in $daemonTimeBeforeRetries")
+      context.system.scheduler.scheduleOnce(daemonTimeBeforeRetries, esDAO, rq)
 
   }
 
@@ -209,6 +228,20 @@ class StockStatManager extends TapiporlaActor with Stash {
       StockESDAO.Historic.typeName,
       date map {dt => rangeQuery(StockESDAO.date) gt dt.toString},
       Some(fieldSort(StockESDAO.date).order(SortOrder.ASC)),
+      Some(CHUNKS_SIZE)
+    )
+
+  /**
+    * Retrieve last historic data until the date, to start computing stats for new Data from crawler
+    * @param date
+    */
+  private def retrieveStockHistoricUntilDate(date: Option[DateTime]) =
+
+    RetrieveAllFromIndexSorted(
+      StockESDAO.index,
+      StockESDAO.Historic.typeName,
+      date map {dt => rangeQuery(StockESDAO.date) lte dt.toString},
+      Some(fieldSort(StockESDAO.date).order(SortOrder.DESC)),
       Some(CHUNKS_SIZE)
     )
 
