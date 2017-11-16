@@ -11,6 +11,8 @@ object TapiporlaConfig {
   private val daemonConfig = config.getConfig("tapiporla.daemon")
   private val elasticConfig = config.getConfig("tapiporla.elasticsearch")
   private val scrapyConfig = config.getConfig("tapiporla.scrapyrt")
+  private val statsConfig = config.getConfig("tapiporla.stats")
+  private val stockConfig = config.getConfig("tapiporla.stock")
 
   //Be careful, this variable affects to Scrapy requests, and parsing responses...
   val globalTimeFormat: String = "dd-MM-yyyy"
@@ -29,6 +31,18 @@ object TapiporlaConfig {
 
   object ScrapyRT {
     val endpoint: String = scrapyConfig.getString("endpoint")
+  }
+
+  object Stats {
+    import scala.collection.JavaConverters._
+    val mmGeneration: Seq[Int] = statsConfig.getIntList("mmGeneration").asScala.map(_.intValue())
+  }
+
+  object Stock {
+    val name: String = stockConfig.getString("name")
+    val elasticIndex: String = stockConfig.getString("elasticIndex")
+    val scrapyCrawler: String = stockConfig.getString("crawler")
+    val crawlerPath: String = stockConfig.getString("crawlerPath")
   }
 
 }

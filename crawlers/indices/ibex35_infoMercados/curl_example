@@ -1,2 +1,0 @@
-Curl to obtain page 3:
-curl --data "N=3" "http://www.infomercados.com/cotizaciones/historico/ibex-35-i%20ib/"
