@@ -9,11 +9,11 @@ import com.tapiporla.microservices.retrievers.indices.stock.dao.StockESDAO
 
 object StockStat {
 
-  def fromMap(map: Map[String,String]) = {
+  def fromMap(values: Map[String,String]) = {
     StockStat(
-      DateTime.parse(map(StockESDAO.date), DateTimeFormat.forPattern(TapiporlaConfig.globalTimeFormat)),
-      map(StockESDAO.Stats.statsAttr),
-      BigDecimal(map(StockESDAO.Stats.statsValue))
+      DateTime.parse(values(StockESDAO.date), DateTimeFormat.forPattern(TapiporlaConfig.globalTimeFormat)),
+      values(StockESDAO.Stats.statsAttr),
+      BigDecimal(values(StockESDAO.Stats.statsValue))
     )
   }
 

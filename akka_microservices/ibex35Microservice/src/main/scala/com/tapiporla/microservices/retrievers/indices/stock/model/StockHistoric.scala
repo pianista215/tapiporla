@@ -8,14 +8,14 @@ import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator.StatDa
 import com.tapiporla.microservices.retrievers.indices.stock.dao.StockESDAO
 
 object StockHistoric {
-  def fromMap(map: Map[String,String]) = {
+  def fromMap(values: Map[String,String]) = {
     StockHistoric(
-      DateTime.parse(map(StockESDAO.date), DateTimeFormat.forPattern(TapiporlaConfig.globalTimeFormat)),
-      BigDecimal(map(StockESDAO.Historic.openingValue)),
-      BigDecimal(map(StockESDAO.Historic.closeValue)),
-      BigDecimal(map(StockESDAO.Historic.minValue)),
-      BigDecimal(map(StockESDAO.Historic.maxValue)),
-      BigDecimal(map(StockESDAO.Historic.volume))
+      DateTime.parse(values(StockESDAO.date), DateTimeFormat.forPattern(TapiporlaConfig.globalTimeFormat)),
+      BigDecimal(values(StockESDAO.Historic.openingValue)),
+      BigDecimal(values(StockESDAO.Historic.closeValue)),
+      BigDecimal(values(StockESDAO.Historic.minValue)),
+      BigDecimal(values(StockESDAO.Historic.maxValue)),
+      BigDecimal(values(StockESDAO.Historic.volume))
     )
   }
 
