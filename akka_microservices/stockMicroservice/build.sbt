@@ -50,3 +50,5 @@ resolvers ++= Seq(
   "elasticsearch-releases" at "https://artifacts.elastic.co/maven",
   "Artima Maven Repository" at "http://repo.artima.com/releases"
 )
+
+enablePlugins(JavaAppPackaging)

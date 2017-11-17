@@ -9,7 +9,7 @@
         </layout>
     </appender>
 
-    <logger name="com.tapiporla" level="INFO" additivity="false">
+    <logger name="com.tapiporla" level="${LOG_LEVEL:-INFO}" additivity="false">
         <appender-ref ref="STDOUT" />
     </logger>
 
