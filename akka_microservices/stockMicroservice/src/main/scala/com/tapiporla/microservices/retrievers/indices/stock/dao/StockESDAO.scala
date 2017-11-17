@@ -6,7 +6,6 @@ import com.sksamuel.elastic4s.indexes.CreateIndexDefinition
 import com.tapiporla.microservices.retrievers.common.{ElasticDAO, TapiporlaConfig}
 
 object StockESDAO {
-  val index = TapiporlaConfig.Stock.elasticIndex
   val date = "date"
 
   object Historic {
@@ -24,14 +23,14 @@ object StockESDAO {
     val statsValue = "stats_value"
   }
 
-  def props(): Props = Props(new StockESDAO())
+  def props(esIndex: String): Props = Props(new StockESDAO(esIndex))
 
 }
 
-class StockESDAO extends ElasticDAO {
+class StockESDAO(esIndex: String) extends ElasticDAO {
 
   override def indexCreation: CreateIndexDefinition =
-      createIndex(StockESDAO.index).mappings(
+      createIndex(esIndex).mappings(
 
         mapping(StockESDAO.Historic.typeName) as(
           dateField(StockESDAO.date),

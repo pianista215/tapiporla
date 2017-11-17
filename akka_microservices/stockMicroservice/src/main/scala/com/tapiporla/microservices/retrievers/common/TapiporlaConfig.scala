@@ -12,7 +12,6 @@ object TapiporlaConfig {
   private val elasticConfig = config.getConfig("tapiporla.elasticsearch")
   private val scrapyConfig = config.getConfig("tapiporla.scrapyrt")
   private val statsConfig = config.getConfig("tapiporla.stats")
-  private val stockConfig = config.getConfig("tapiporla.stock")
 
   //Be careful, this variable affects to Scrapy requests, and parsing responses...
   val globalTimeFormat: String = "dd-MM-yyyy"
@@ -39,10 +38,21 @@ object TapiporlaConfig {
   }
 
   object Stock {
-    val name: String = stockConfig.getString("name")
-    val elasticIndex: String = stockConfig.getString("elasticIndex")
-    val scrapyCrawler: String = stockConfig.getString("crawler")
-    val crawlerPath: String = stockConfig.getString("crawlerPath")
+    import scala.collection.JavaConverters._
+
+    //Stocks we want to collect with out actors
+
+    val stocks: Seq[StockConfig] =
+      ConfigFactory.load("stocks.conf").getConfigList("tapiporla.stocks").asScala.map{ stockConfig =>
+        StockConfig(
+          stockConfig.getString("name"),
+          stockConfig.getString("elasticIndex"),
+          stockConfig.getString("crawler"),
+          stockConfig.getString("crawlerPath")
+        )
+      }
   }
+
+  case class StockConfig(name: String, elasticIndex: String, scrapyCrawler: String, crawlerPath: String)
 
 }

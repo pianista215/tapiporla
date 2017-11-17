@@ -2,6 +2,7 @@ package com.tapiporla.microservices.retrievers.indices.stock
 
 import akka.actor.{Actor, ActorLogging, Props}
 import com.tapiporla.microservices.retrievers.common.Retriever.UpdateHistoricData
+import com.tapiporla.microservices.retrievers.common.TapiporlaConfig.StockConfig
 import com.tapiporla.microservices.retrievers.common.{TapiporlaActor, TapiporlaConfig}
 import com.tapiporla.microservices.retrievers.indices.stock.StockHistoricManager.UpdateComplete
 import com.tapiporla.microservices.retrievers.indices.stock.StockStatManager.StatsUpdatedSuccessfully
@@ -10,19 +11,19 @@ import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 object StockCoordinator {
-  def props(): Props = Props(new StockCoordinator())
+  def props(stockConfig: StockConfig): Props = Props(new StockCoordinator(stockConfig))
 }
 
 /**
   * Chief actor in charge of coordination between Historic Manager and Stat Manager
   */
-class StockCoordinator extends TapiporlaActor {
+class StockCoordinator(stockConfig: StockConfig) extends TapiporlaActor {
 
   val historicManager =
-    context.actorOf(StockHistoricManager.props(), name = s"${stockName}HistoricManager")
+    context.actorOf(StockHistoricManager.props(stockConfig), name = s"${stockConfig.name}HistoricManager")
 
   val statManager =
-    context.actorOf(StockStatManager.props(), name = s"${stockName}StatManager")
+    context.actorOf(StockStatManager.props(stockConfig), name = s"${stockConfig.name}StatManager")
 
   val executionPeriod: FiniteDuration = TapiporlaConfig.Daemon.periodicExecution
 

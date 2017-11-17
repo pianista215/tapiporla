@@ -4,6 +4,7 @@ import akka.actor.{Props, Stash}
 import com.tapiporla.microservices.retrievers.common.ElasticDAO._
 import com.tapiporla.microservices.retrievers.common.Retriever
 import com.tapiporla.microservices.retrievers.common.Retriever.UpdateHistoricData
+import com.tapiporla.microservices.retrievers.common.TapiporlaConfig.StockConfig
 import com.tapiporla.microservices.retrievers.indices.stock.StockHistoricManager.{InitCoordinator, ReadyToStart, UpdateComplete}
 import com.tapiporla.microservices.retrievers.indices.stock.dao.StockScrapyDAO.{CantRetrieveDataFromCrawler, RetrieveAllStockData, RetrieveStockDataFrom, StockDataRetrieved}
 import com.tapiporla.microservices.retrievers.indices.stock.dao.{StockESDAO, StockScrapyDAO}
@@ -20,20 +21,22 @@ object StockHistoricManager {
   case class ReadyToStart(lastUpdated: Option[DateTime])
   case object UpdateComplete
 
-  def props(): Props = Props(new StockHistoricManager())
+  def props(stockConfig: StockConfig): Props = Props(new StockHistoricManager(stockConfig))
 }
 
 /**
   * Actor in charge of the Stock data retrieved from ScrapyRT
   * and persisted in ElasticSearch
   */
-class StockHistoricManager extends Retriever with Stash {
+class StockHistoricManager(stockConfig: StockConfig) extends Retriever with Stash {
+
+  val stockName = stockConfig.name
 
   val esDAO =
-    context.actorOf(StockESDAO.props(), name = s"${stockName}ESDAO_Historic")
+    context.actorOf(StockESDAO.props(stockConfig.elasticIndex), name = s"${stockName}ESDAO_Historic")
 
   val scrapyDAO =
-    context.actorOf(StockScrapyDAO.props(), name = s"${stockName}ScrapyDAO_Historic")
+    context.actorOf(StockScrapyDAO.props(stockConfig), name = s"${stockName}ScrapyDAO_Historic")
 
   override def preStart() =
     self ! InitCoordinator
@@ -46,7 +49,7 @@ class StockHistoricManager extends Retriever with Stash {
       import com.sksamuel.elastic4s.ElasticDsl._
       log.info("Recovering initial status")
       esDAO ! RetrieveAllFromIndexSorted(
-        StockESDAO.index,
+        stockConfig.elasticIndex,
         StockESDAO.Historic.typeName,
         None,
         Some(fieldSort(StockESDAO.date).order(SortOrder.DESC)),
@@ -92,7 +95,7 @@ class StockHistoricManager extends Retriever with Stash {
       if(historicData.nonEmpty) {
         log.info(s"Sending to ES new Data")
         esDAO ! SaveInIndex(
-          StockESDAO.index,
+          stockConfig.elasticIndex,
           StockESDAO.Historic.typeName,
           historicData
         )
