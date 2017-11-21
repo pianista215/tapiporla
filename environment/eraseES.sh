@@ -5,6 +5,6 @@ sanitized=`echo "$indices" | tr -d '"'`
 
 for index in $sanitized
 do
-  echo "Deleting $index" 
+  echo -e "Deleting $index\n" 
   curl -XDELETE -u elastic:changeme http://localhost:9200/$index
 done
