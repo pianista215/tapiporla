@@ -22,7 +22,7 @@ echo "$sanitized"
 for index in $sanitized
 do
    echo "Backuping mappings: $index"
-   docker run --net=host -v $FINAL_PATH:/tmp --rm -ti taskrabbit/elasticsearch-dump --input=http://elastic:changeme@127.0.0.1:9200/$index/historic --output=/tmp/${index}_mapping.json --type=mapping 
+   docker run --net=host -v $FINAL_PATH:/tmp --rm -ti taskrabbit/elasticsearch-dump --input=http://elastic:changeme@127.0.0.1:9200/$index --output=/tmp/${index}_mapping.json --type=mapping 
    echo "Backuping data: $index"
    docker run --net=host -v $FINAL_PATH:/tmp --rm -ti taskrabbit/elasticsearch-dump --input=http://elastic:changeme@127.0.0.1:9200/$index/historic --output=/tmp/${index}_data.json --type=data
 done
