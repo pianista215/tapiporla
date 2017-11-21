@@ -1,9 +1,10 @@
 #!/bin/bash
 
-echo -e "\nDelete Ibex35:\n"
-curl -XDELETE -u elastic:changeme http://localhost:9200/ibex35
+indices=`curl -XGET http://elastic:changeme@localhost:9200/_mapping?pretty=true | jq 'to_entries | .[] | {(.key): .value.mappings | keys}' | jq 'to_entries | .[] | select(.value | index("historic")) | .key'`
+sanitized=`echo "$indices" | tr -d '"'`
 
-echo -e "\nDelete BBVA:\n"
-curl -XDELETE -u elastic:changeme http://localhost:9200/bbva
-
-echo -e "\nFinished\n"
+for index in $sanitized
+do
+  echo "Deleting $index" 
+  curl -XDELETE -u elastic:changeme http://localhost:9200/$index
+done
