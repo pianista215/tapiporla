@@ -8,6 +8,7 @@ import akka.http.scaladsl.settings.ConnectionPoolSettings
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.pattern.pipe
 import akka.stream.ActorMaterializer
+import com.tapiporla.microservices.retrievers.common.TapiporlaConfig.StockConfig
 import com.tapiporla.microservices.retrievers.common.{TapiporlaActor, TapiporlaConfig}
 import com.tapiporla.microservices.retrievers.common.model.{ScrapyRTDefaultProtocol, ScrapyRTParameters, ScrapyRTRequest, ScrapyRTResponse}
 import com.tapiporla.microservices.retrievers.indices.stock.dao.StockScrapyDAO.{CantRetrieveDataFromCrawler, RetrieveAllStockData, RetrieveStockDataFrom, StockDataRetrieved}
@@ -24,14 +25,14 @@ object StockScrapyDAO {
   case class StockDataRetrieved(stockData: Seq[StockHistoric])
   case object CantRetrieveDataFromCrawler
 
-  def props(): Props = Props(new StockScrapyDAO())
+  def props(stockConfig: StockConfig): Props = Props(new StockScrapyDAO(stockConfig.scrapyCrawler, stockConfig.crawlerPath))
 }
 
 
 /**
   * In charge of retrieve data from the ScrapyRT endpoint
   */
-class StockScrapyDAO extends TapiporlaActor with ScrapyRTDefaultProtocol {
+class StockScrapyDAO(crawlerId: String, crawlerPath: String) extends TapiporlaActor with ScrapyRTDefaultProtocol {
 
   val endpoint = TapiporlaConfig.ScrapyRT.endpoint
   val http = Http(context.system)
@@ -71,8 +72,6 @@ class StockScrapyDAO extends TapiporlaActor with ScrapyRTDefaultProtocol {
         CantRetrieveDataFromCrawler
     } pipeTo sender
 
-  val crawlerId = TapiporlaConfig.Stock.scrapyCrawler
-  val crawlerPath = TapiporlaConfig.Stock.crawlerPath
 
   private def buildRequest(fromDate: Option[DateTime] = None): ScrapyRTRequest =
     ScrapyRTRequest(crawlerId, start_requests = true, buildParameters(fromDate))

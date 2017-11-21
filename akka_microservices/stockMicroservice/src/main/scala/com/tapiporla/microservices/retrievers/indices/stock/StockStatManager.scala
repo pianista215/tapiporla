@@ -4,6 +4,7 @@ import akka.actor.{Props, Stash}
 import com.sksamuel.elastic4s.searches.RichSearchResponse
 import com.sksamuel.elastic4s.searches.queries.term.TermQueryDefinition
 import com.tapiporla.microservices.retrievers.common.ElasticDAO._
+import com.tapiporla.microservices.retrievers.common.TapiporlaConfig.StockConfig
 import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator
 import com.tapiporla.microservices.retrievers.common.stats.StatsGenerator.MMDefinition
 import com.tapiporla.microservices.retrievers.common.{TapiporlaActor, TapiporlaConfig}
@@ -21,7 +22,7 @@ object StockStatManager {
   case object CheckReadyToStart //Called to check if we have all the data needed to Start the manager
   case object StatsUpdatedSuccessfully //When stats has been generated succesfully
 
-  def props(): Props = Props(new StockStatManager())
+  def props(stockConfig: StockConfig): Props = Props(new StockStatManager(stockConfig))
 
   object MMStatus {
     def unchecked(mm: MMDefinition): MMStatus = MMStatus(mm, false, None)
@@ -49,10 +50,12 @@ object StockStatManager {
   * The flow is: initial -> gettingInitialStatus -> waitingForDeletions -> ready -> updating -> ready...
   *
   */
-class StockStatManager extends TapiporlaActor with Stash {
+class StockStatManager(stockConfig: StockConfig) extends TapiporlaActor with Stash {
+
+  val stockName = stockConfig.name
 
   val esDAO =
-    context.actorOf(StockESDAO.props(), name = s"${stockName}ESDAO_Manager")
+    context.actorOf(StockESDAO.props(stockConfig.elasticIndex), name = s"${stockName}ESDAO_Manager")
 
   override def receive: Receive = initial
 
@@ -181,7 +184,7 @@ class StockStatManager extends TapiporlaActor with Stash {
         val updatedDate = stats.last.date
 
         log.info(s"Saving stats updated until: $updatedDate")
-        esDAO ! SaveInIndex(StockESDAO.index, StockESDAO.Stats.typeName, stats)
+        esDAO ! SaveInIndex(stockConfig.elasticIndex, StockESDAO.Stats.typeName, stats)
         context.become(updating(Some(updatedDate), stockHistoricRetrieved))
       } else {
         log.error(s"No data to be updated from $index. Check if new data is being retrieved correctly. Moving to ready")
@@ -224,7 +227,7 @@ class StockStatManager extends TapiporlaActor with Stash {
   private def retrieveStockHistoricFromDate(date: Option[DateTime]) =
 
     RetrieveAllFromIndexSorted(
-      StockESDAO.index,
+      stockConfig.elasticIndex,
       StockESDAO.Historic.typeName,
       date map {dt => rangeQuery(StockESDAO.date) gt dt.toString},
       Some(fieldSort(StockESDAO.date).order(SortOrder.ASC)),
@@ -238,7 +241,7 @@ class StockStatManager extends TapiporlaActor with Stash {
   private def retrieveStockHistoricUntilDate(date: Option[DateTime]) =
 
     RetrieveAllFromIndexSorted(
-      StockESDAO.index,
+      stockConfig.elasticIndex,
       StockESDAO.Historic.typeName,
       date map {dt => rangeQuery(StockESDAO.date) lte dt.toString},
       Some(fieldSort(StockESDAO.date).order(SortOrder.DESC)),
@@ -254,7 +257,7 @@ class StockStatManager extends TapiporlaActor with Stash {
     */
   private def retrieveLastMMUpdated(mm: MMDefinition): RetrieveAllFromIndexSorted =
     RetrieveAllFromIndexSorted(
-      StockESDAO.index,
+      stockConfig.elasticIndex,
       StockESDAO.Stats.typeName,
       Some(termQuery(StockESDAO.Stats.statsAttr, mm.identifier)),
       Some(fieldSort(StockESDAO.date).order(SortOrder.DESC)),
@@ -272,7 +275,7 @@ class StockStatManager extends TapiporlaActor with Stash {
     }
 
     DeleteFromIndex(
-      StockESDAO.index,
+      stockConfig.elasticIndex,
       StockESDAO.Stats.typeName,
       deleteQuery
     )
