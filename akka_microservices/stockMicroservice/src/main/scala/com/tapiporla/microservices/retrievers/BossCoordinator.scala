@@ -36,7 +36,7 @@ class BossCoordinator extends TapiporlaActor{
   }
 
   def started(coordinatorsLaunched: Seq[ActorRef]): Receive = {
-    case _ =>
+    case message => unhandled(message)
   }
 
 
