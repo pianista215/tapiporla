@@ -1,0 +1,67 @@
+index -> userLogin
+type -> user
+
+{
+	"email": "user@example.com",
+	"password": "XXXXX", //To be hashed
+	
+	"tokens": [
+		"token1",
+		"token2"
+	]
+
+}
+
+index -> userEquities
+type -> userEquity
+
+{
+	"user": "user@example.com",
+	"equity": "IAG",
+
+	"actualEquities": 150,
+	"averageEquityCost": 5.71,
+
+	"purchases": [
+		{ "date": "2017-01-23T00:00:00.000+01:00", "quantity": 50, "price": 6.38, "fee": 0.00 },
+		{ "date": "2017-02-28T00:00:00.000+01:00", "quantity": 100, "price": 5.38, "fee": 12.00 }
+	],
+
+	"dividends": [
+		{ "date": "2017-02-10T00:00:00.000+01:00", "earn": 15.50, "fee": 1.00 },
+	],
+
+	"maintenanceFees": [
+		{ "date": "2017-02-23T00:00:00.000+01:00", "fee": 6.00 },
+	],
+
+	"closedOperations": [
+		{
+			"purchases": [
+				{ "date": "2017-01-22T00:00:00.000+01:00", "quantity": 100, "price": 6.18, "fee": 12.00 },
+				{ "date": "2017-01-23T00:00:00.000+01:00", "quantity": 50, "price": 6.38, "fee": 12.00 },
+			],
+
+			"dividends": [
+				{ "date": "2017-02-04T00:00:00.000+01:00", "earn": 15.50, "fee": 1.00 },
+			],
+
+			"maintenanceFees": [
+				{ "date": "2017-02-23T00:00:00.000+01:00", "fee": 6.00 },
+			],
+
+			"sale": 
+				{ "date": "2017-02-05T00:00:00.000+01:00", "quantity": 150, "price": 7.00, "fee": 12.00 },
+
+			"baseCost": 937.00, //Purchases
+			"totalFees": 43.00, //Sum of all comissions (Purchases, sales, dividends and maintenance)
+			"finalCost": 980.00, //baseCost + totalFees
+			"salePrice": 1050, 
+			"grossProfit": 70.0, //salePrice  - finalCost
+			"dividendsProfit": 15.50, //Sum of dividends
+			"netProfit": 85.5, //grossProfit + dividensProfit
+			"percentage": 8.72// netProfit/finalCost * 100
+		}
+	],
+
+}
