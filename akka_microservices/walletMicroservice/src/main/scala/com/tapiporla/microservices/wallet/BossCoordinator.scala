@@ -6,7 +6,7 @@ import com.tapiporla.microservices.wallet.common.{TapiporlaActor, TapiporlaConfi
 
 object BossCoordinator {
 
-  def props():Props = Props(new BossCoordinator())
+  def props(): Props = Props(new BossCoordinator())
 
   case object StartAllCoordinators
 }
