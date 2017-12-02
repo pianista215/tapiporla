@@ -8,7 +8,7 @@ object Main {
   def main(args: Array[String]): Unit = {
 
     val system = ActorSystem("retrievers")
-    val bossCoordinator = system.actorOf(BossCoordinator.props())
+    val bossCoordinator = system.actorOf(BossCoordinator.props(), "BossCoordinator")
 
     bossCoordinator ! StartAllCoordinators
   }
