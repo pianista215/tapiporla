@@ -35,7 +35,18 @@ type -> userEquity
 		{ "date": "2017-02-23T00:00:00.000+01:00", "fee": 6.00 },
 	],
 
-	"closedOperations": [
+	"report": {
+		"baseCost": 937.00, //Purchases
+			"totalFees": 43.00, //Sum of all comissions (Purchases, sales, dividends and maintenance)
+			"finalCost": 980.00, //baseCost + totalFees
+			"salePrice": 1050, 
+			"grossProfit": 70.0, //salePrice  - finalCost
+			"dividendsProfit": 15.50, //Sum of dividends
+			"netProfit": 85.5, //grossProfit + dividensProfit
+			"percentage": 8.72// netProfit/finalCost * 100
+	}
+
+	/*"closedOperations": [
 		{
 			"purchases": [
 				{ "date": "2017-01-22T00:00:00.000+01:00", "quantity": 100, "pricePerShare": 6.18, "fee": 12.00 },
@@ -62,6 +73,6 @@ type -> userEquity
 			"netProfit": 85.5, //grossProfit + dividensProfit
 			"percentage": 8.72// netProfit/finalCost * 100
 		}
-	],
+	],*/
 
 }

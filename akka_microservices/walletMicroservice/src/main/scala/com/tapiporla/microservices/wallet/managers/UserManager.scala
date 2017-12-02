@@ -17,6 +17,7 @@ class UserManager extends TapiporlaActor{
 
   def mock: Receive = {
     case CheckUserExists(userId) =>
+      log.info("User always exists!!!!")
       sender() ! UserExistsConfirmation(userId, true)
   }
 
