@@ -1,4 +1,4 @@
-index -> userLogin
+index -> user_login
 type -> user
 
 {
@@ -12,8 +12,8 @@ type -> user
 
 }
 
-index -> userEquities
-type -> userEquity
+index -> user_equities
+type -> user_equity
 
 {
 	"user": "user@example.com",
@@ -36,7 +36,7 @@ type -> userEquity
 	],
 
 	"report": {
-		"baseCost": 937.00, //Purchases
+			"baseCost": 937.00, //Purchases
 			"totalFees": 43.00, //Sum of all comissions (Purchases, sales, dividends and maintenance)
 			"finalCost": 980.00, //baseCost + totalFees
 			"salePrice": 1050, 

@@ -7,8 +7,8 @@ import com.tapiporla.microservices.wallet.common.ElasticDAO
 
 object WalletESDAO {
 
-  val esIndex = "userEquities"
-  val typeName = "userEquity"
+  val esIndex = "user_equities"
+  val typeName = "user_equity"
 
   val user = "user"
   val equity = "equity"

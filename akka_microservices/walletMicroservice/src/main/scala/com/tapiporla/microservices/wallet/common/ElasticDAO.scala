@@ -115,6 +115,7 @@ trait ElasticDAO extends TapiporlaActor with Stash {
 
 
     case ProblemConnectingWithES(e) =>
+      //TODO: We are not passing  the exceptions to the logger properly!!!!!!
       log.error(s"Error initializing ElasticSearch DAO. Trying again in $daemonTimeBeforeRetries", e)
       context.system.scheduler.scheduleOnce(daemonTimeBeforeRetries, self, InitElasticDAO)
 
