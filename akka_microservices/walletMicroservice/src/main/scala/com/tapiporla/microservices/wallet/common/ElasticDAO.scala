@@ -1,6 +1,6 @@
 package com.tapiporla.microservices.wallet.common
 
-import akka.actor.{Actor, ActorLogging, Stash}
+import akka.actor.Stash
 import akka.pattern.pipe
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.ElasticsearchClientUri
@@ -17,9 +17,10 @@ import org.elasticsearch.action.support.WriteRequest.RefreshPolicy
 import org.elasticsearch.common.settings.Settings
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration._
 
 object ElasticDAO {
+
+  val documentsId = "_id"
 
   case class SaveInIndex(index: String, typeName: String, jsonDocs: Seq[ElasticDocumentInsertable])
 
@@ -46,6 +47,12 @@ object ElasticDAO {
                               )
 
   case class DeleteConfirmation(index: String, typeName: String, originalRQ: DeleteFromIndex)
+
+  case class Update(index: String, typeName: String, id: String, newDoc: ElasticDocumentInsertable)
+
+  case class UpdateConfirmation(index: String, typeName: String, originalRQ: Update)
+
+  case class ErrorUpdatingData(error: Exception, index: String, typeName: String, originalRQ: Update)
 
   case class RetrieveAllFromIndexSorted(
                                          index: String,
@@ -170,6 +177,17 @@ trait ElasticDAO extends TapiporlaActor with Stash {
           ErrorDeletingData(e, index, typeName, rq)
       } pipeTo sender
 
+    case rq @ Update(index, typeName, id, newDoc) =>
+      client.execute {
+        update(id) in index/typeName doc newDoc.json
+      } map { _ =>
+        log.info(s"Updated document with id $id, in $index $typeName, newDoc: $newDoc")
+        UpdateConfirmation(index, typeName, rq)
+      } recover {
+        case e: Exception =>
+          log.error(s"Impossible to update in index $index $typeName doc $newDoc with id $id",e)
+          ErrorUpdatingData(e, index, typeName, rq)
+      }
   }
 
 }

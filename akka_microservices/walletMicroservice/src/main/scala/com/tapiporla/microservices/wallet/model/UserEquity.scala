@@ -1,8 +1,33 @@
 package com.tapiporla.microservices.wallet.model
 
+import com.sksamuel.elastic4s.Hit
+import com.tapiporla.microservices.wallet.common.ElasticDAO
 import com.tapiporla.microservices.wallet.common.model.ElasticDocumentInsertable
 import com.tapiporla.microservices.wallet.dao.WalletESDAO
-import org.joda.time.DateTime
+
+object UserEquity {
+  def fromHit(t: Hit): UserEquity = {
+    val map = t.sourceAsMap
+    UserEquity(
+      map(WalletESDAO.user).toString,
+      map(WalletESDAO.equity).toString,
+      map(WalletESDAO.numberOfShares).toString.toInt,
+      BigDecimal(map(WalletESDAO.averageSharePrice).toString),
+      map(WalletESDAO.Purchases.id).asInstanceOf[Seq[Map[String,AnyRef]]].map{
+        x => Purchase.fromMap(x)
+      },
+      map(WalletESDAO.Dividends.id).asInstanceOf[Seq[Map[String, AnyRef]]].map{
+        x => Dividend.fromMap(x)
+      },
+      map(WalletESDAO.MaintenanceFees.id).asInstanceOf[Seq[Map[String, AnyRef]]].map{
+        x => MaintenanceFee.fromMap(x)
+      },
+      map.get(ElasticDAO.documentsId).map(_.toString)
+    )
+
+    //TODO: Use HitReader?? How to use it with arrays?
+  }
+}
 
 case class UserEquity(
                        user: String,
@@ -11,7 +36,8 @@ case class UserEquity(
                        averageSharePrice: BigDecimal,
                        purchases: Seq[Purchase],
                        dividends: Seq[Dividend],
-                       maintenanceFees: Seq[MaintenanceFee]
+                       maintenanceFees: Seq[MaintenanceFee],
+                       elasticId: Option[String] = None
                      ) extends ElasticDocumentInsertable {
 
   //TODO: Enhance JSON mapping using a library like (Same as StockMicroservice)
@@ -27,47 +53,5 @@ case class UserEquity(
        |} """.stripMargin
 
 }
-
-
-case class Purchase(
-                    date: DateTime,
-                    quantity: Int,
-                    pricePerShare: BigDecimal,
-                    fee: BigDecimal
-                    ) extends ElasticDocumentInsertable {
-  override def json =
-    s""" {
-       |"${WalletESDAO.Purchases.date}" : "$date",
-       |"${WalletESDAO.Purchases.quantity}" : "$quantity",
-       |"${WalletESDAO.Purchases.pricePerShare}" : "$pricePerShare",
-       |"${WalletESDAO.Purchases.fee}" : "$fee"
-       |} """.stripMargin
-}
-
-case class Dividend(
-                    date: DateTime,
-                    profit: BigDecimal,
-                    fee: BigDecimal
-                    ) extends ElasticDocumentInsertable {
-  override def json =
-    s""" {
-       |"${WalletESDAO.Dividends.date}" : "$date",
-       |"${WalletESDAO.Dividends.profit}" : "$profit",
-       |"${WalletESDAO.Purchases.fee}" : "$fee"
-       |} """.stripMargin
-}
-
-case class MaintenanceFee(
-                          date: DateTime,
-                          fee: BigDecimal
-                          ) extends ElasticDocumentInsertable {
-
-  override def json =
-    s""" {
-       |"${WalletESDAO.Purchases.date}" : "$date",
-       |"${WalletESDAO.Purchases.fee}" : "$fee"
-       |} """.stripMargin
-}
-
 
 //TODO: Closed operations

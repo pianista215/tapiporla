@@ -63,23 +63,23 @@ class WalletESDAO extends ElasticDAO {
         keywordField(WalletESDAO.user),
         keywordField(WalletESDAO.equity),
 
-        longField(WalletESDAO.numberOfShares),
+        intField(WalletESDAO.numberOfShares),
         doubleField(WalletESDAO.averageSharePrice),
 
-        objectField(WalletESDAO.Purchases.id) fields (
+        nestedField(WalletESDAO.Purchases.id) fields (
           dateField(WalletESDAO.Purchases.date),
-          longField(WalletESDAO.Purchases.quantity),
+          intField(WalletESDAO.Purchases.quantity),
           doubleField(WalletESDAO.Purchases.pricePerShare),
           doubleField(WalletESDAO.Purchases.fee)
         ),
 
-        objectField(WalletESDAO.Dividends.id) fields (
+        nestedField(WalletESDAO.Dividends.id) fields (
           dateField(WalletESDAO.Dividends.date),
           doubleField(WalletESDAO.Dividends.profit),
           doubleField(WalletESDAO.Dividends.fee)
         ),
 
-        objectField(WalletESDAO.MaintenanceFees.id) fields (
+        nestedField(WalletESDAO.MaintenanceFees.id) fields (
           dateField(WalletESDAO.MaintenanceFees.id),
           doubleField(WalletESDAO.MaintenanceFees.fee)
         ),
