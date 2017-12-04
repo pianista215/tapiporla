@@ -1,11 +1,12 @@
 package com.tapiporla.microservices.wallet.model
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import com.tapiporla.microservices.wallet.common.MathUtils
 
 object UserEquity {
 
   def empty(user: String, equity: String): UserEquity =
-    UserEquity(user, equity, 0, 0.0, Seq(), Seq(), Seq(), Some(s"$user@$equity"))
+    UserEquity(user, equity, 0, 0.0, Seq(), Seq(), Seq())
 
 }
 
@@ -16,9 +17,12 @@ case class UserEquity(
                        averageSharePrice: BigDecimal,
                        purchases: Seq[Purchase],
                        dividends: Seq[Dividend],
-                       maintenanceFees: Seq[MaintenanceFee],
-                       elasticId: Option[String] = None
+                       maintenanceFees: Seq[MaintenanceFee]
                      ) {
+
+  @JsonIgnore
+  def getElasticId: String =
+    s"$user@$equity"
 
   def withPurchase(p: Purchase): UserEquity =
     copy(

@@ -103,7 +103,7 @@ class WalletOperator extends TapiporlaActor {
     (esDAO ? Upsert(
       WalletESDAO.esIndex,
       WalletESDAO.typeName,
-      newState.elasticId.get,
+      newState.getElasticId,
       newState
     )).mapTo[UpsertConfirmation].map { retrieved =>
       log.debug(s"Document updated: $newState")
