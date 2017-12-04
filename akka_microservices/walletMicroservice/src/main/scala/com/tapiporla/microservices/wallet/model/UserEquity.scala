@@ -27,6 +27,9 @@ object UserEquity {
 
     //TODO: Use HitReader?? How to use it with arrays?
   }
+
+  def empty(user: String, equity: String): UserEquity =
+    UserEquity(user, equity, 0, 0.0, Seq(), Seq(), Seq(), Some(s"$user@$equity"))
 }
 
 case class UserEquity(
@@ -47,9 +50,9 @@ case class UserEquity(
        |"${WalletESDAO.equity}" : "$equity",
        |"${WalletESDAO.numberOfShares}" : "$numberOfShares",
        |"${WalletESDAO.averageSharePrice}" : "$averageSharePrice",
-       |"${WalletESDAO.Purchases.id}" : "${purchases.map(_.json).mkString("[",",","]")}",
-       |"${WalletESDAO.Dividends.id}" : "${dividends.map(_.json).mkString("[", ",", "]")}",
-       |"${WalletESDAO.MaintenanceFees.id}" : "${maintenanceFees.map(_.json).mkString("[", ",", "]")}"
+       |"${WalletESDAO.Purchases.id}" : ${purchases.map(_.json).mkString("[",",","]")},
+       |"${WalletESDAO.Dividends.id}" : ${dividends.map(_.json).mkString("[", ",", "]")},
+       |"${WalletESDAO.MaintenanceFees.id}" : ${maintenanceFees.map(_.json).mkString("[", ",", "]")}
        |} """.stripMargin
 
 }

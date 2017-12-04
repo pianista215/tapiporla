@@ -48,11 +48,11 @@ object ElasticDAO {
 
   case class DeleteConfirmation(index: String, typeName: String, originalRQ: DeleteFromIndex)
 
-  case class Update(index: String, typeName: String, id: String, newDoc: ElasticDocumentInsertable)
+  case class Upsert(index: String, typeName: String, id: String, newDoc: ElasticDocumentInsertable)
 
-  case class UpdateConfirmation(index: String, typeName: String, originalRQ: Update)
+  case class UpsertConfirmation(index: String, typeName: String, originalRQ: Upsert)
 
-  case class ErrorUpdatingData(error: Exception, index: String, typeName: String, originalRQ: Update)
+  case class ErrorUpsertingData(error: Exception, index: String, typeName: String, originalRQ: Upsert)
 
   case class RetrieveAllFromIndexSorted(
                                          index: String,
@@ -116,7 +116,7 @@ trait ElasticDAO extends TapiporlaActor with Stash {
 
     case ProblemConnectingWithES(e) =>
       //TODO: We are not passing  the exceptions to the logger properly!!!!!!
-      log.error(s"Error initializing ElasticSearch DAO. Trying again in $daemonTimeBeforeRetries", e)
+      log.error(e, s"Error initializing ElasticSearch DAO. Trying again in $daemonTimeBeforeRetries")
       context.system.scheduler.scheduleOnce(daemonTimeBeforeRetries, self, InitElasticDAO)
 
 
@@ -141,7 +141,7 @@ trait ElasticDAO extends TapiporlaActor with Stash {
         DataSavedConfirmation(index, typeName, jsonDocs)
       } recover {
         case e: Exception =>
-          log.error(s"Impossible to save in index $index $typeName ${jsonDocs.length} docs", e)
+          log.error(e, s"Impossible to save in index $index $typeName ${jsonDocs.length} docs")
           ErrorSavingData(e, index, typeName, jsonDocs)
       } pipeTo sender
 
@@ -157,7 +157,7 @@ trait ElasticDAO extends TapiporlaActor with Stash {
         DataRetrieved(index, typeName, result, rq)
       } recover {
         case e: Exception =>
-          log.error(s"Impossible to retrieve from index $index $typeName all sorted", e)
+          log.error(e, s"Impossible to retrieve from index $index $typeName all sorted")
           ErrorRetrievingData(e, index, typeName, rq)
       } pipeTo sender
 
@@ -174,20 +174,21 @@ trait ElasticDAO extends TapiporlaActor with Stash {
         DeleteConfirmation(index, typeName, rq)
       } recover {
         case e: Exception =>
-          log.error(s"Impossible to delete in index $index $typeName", e)
+          log.error(e, s"Impossible to delete in index $index $typeName")
           ErrorDeletingData(e, index, typeName, rq)
       } pipeTo sender
 
-    case rq @ Update(index, typeName, id, newDoc) =>
+    case rq @ Upsert(index, typeName, id, newDoc) =>
       client.execute {
-        update(id) in index/typeName doc newDoc.json
+        log.debug(s"Upserting:${newDoc.json}")
+        update(id) in index/typeName docAsUpsert newDoc.json
       } map { _ =>
         log.info(s"Updated document with id $id, in $index $typeName, newDoc: $newDoc")
-        UpdateConfirmation(index, typeName, rq)
+        UpsertConfirmation(index, typeName, rq)
       } recover {
         case e: Exception =>
-          log.error(s"Impossible to update in index $index $typeName doc $newDoc with id $id",e)
-          ErrorUpdatingData(e, index, typeName, rq)
+          log.error(e, s"Impossible to update in index $index $typeName doc $newDoc with id $id")
+          ErrorUpsertingData(e, index, typeName, rq)
       }
   }
 

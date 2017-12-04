@@ -13,7 +13,7 @@ import scala.concurrent.duration._
 import akka.pattern.pipe
 import akka.pattern.ask
 import akka.util.Timeout
-import com.tapiporla.microservices.wallet.common.ElasticDAO.{DataRetrieved, RetrieveAllFromIndexSorted, Update, UpdateConfirmation}
+import com.tapiporla.microservices.wallet.common.ElasticDAO.{DataRetrieved, RetrieveAllFromIndexSorted, Upsert, UpsertConfirmation}
 
 object WalletOperator {
   case class AddPurchase(userId: String, equityId: String, purchase: Purchase) extends OperationWithUser
@@ -93,16 +93,16 @@ class WalletOperator extends TapiporlaActor {
       Some(1)
     )).mapTo[DataRetrieved].map{ retrieved =>
       log.debug(s"Find in ES, data: $retrieved")
-      UserEquity.fromHit(retrieved.data.hits.head)
+      retrieved.data.hits.headOption.map(UserEquity.fromHit).getOrElse(UserEquity.empty(userId, equityId))
     }
 
   def saveNewUserEquity(newState: UserEquity): Future[UserEquity] =
-    (esDAO ? Update(
+    (esDAO ? Upsert(
       WalletESDAO.esIndex,
       WalletESDAO.typeName,
       newState.elasticId.get,
       newState
-    )).mapTo[UpdateConfirmation].map { retrieved =>
+    )).mapTo[UpsertConfirmation].map { retrieved =>
       log.debug(s"Document updated: $newState")
       newState
     }
