@@ -43,17 +43,20 @@ case class UserEquity(
       averageSharePrice = generateAvgPrice(purchases, dividends, maintenanceFees :+ f)
     )
 
-  def generateAvgPrice(purchases: Seq[Purchase], dividends: Seq[Dividend], fees: Seq[MaintenanceFee]): BigDecimal = {
-    MathUtils.normalize (
-      (
+  def generateAvgPrice(purchases: Seq[Purchase], dividends: Seq[Dividend], fees: Seq[MaintenanceFee]): BigDecimal =
+    purchases.headOption.fold {
+      BigDecimal(0.0)
+    }{ _ =>
+      MathUtils.normalize(
+        (
 
-      purchases.map(p => p.quantity * p.pricePerShare + p.fee).sum +
-      dividends.map(d => d.fee - d.profit).sum +
-      maintenanceFees.map(_.fee).sum
+          purchases.map(p => p.quantity * p.pricePerShare + p.fee).sum +
+            dividends.map(d => d.fee - d.profit).sum +
+            maintenanceFees.map(_.fee).sum
 
-      ) / generateNumberOfShares(purchases)
-    )
-  }
+          ) / generateNumberOfShares(purchases)
+      )
+    }
 
   def generateNumberOfShares(purchases: Seq[Purchase]): Int =
     purchases.map(_.quantity).sum

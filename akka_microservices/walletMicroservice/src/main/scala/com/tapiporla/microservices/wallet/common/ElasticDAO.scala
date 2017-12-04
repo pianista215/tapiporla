@@ -181,7 +181,7 @@ trait ElasticDAO extends TapiporlaActor with Stash {
     case rq @ Upsert(index, typeName, id, newDoc) =>
       client.execute {
         log.debug(s"Upserting:${newDoc}")
-        update(id) in index/typeName docAsUpsert newDoc
+        update(id) in index/typeName docAsUpsert newDoc refresh(RefreshPolicy.WAIT_UNTIL)
       } map { _ =>
         log.info(s"Updated document with id $id, in $index $typeName, newDoc: $newDoc")
         UpsertConfirmation(index, typeName, rq)

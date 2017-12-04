@@ -21,10 +21,10 @@ object WalletOperator {
   case class AddMaintenanceFee(userId: String, equityId: String, fee: MaintenanceFee) extends OperationWithUser
 
   case class SaveSuccess(userId: String, equityId: String, newState: UserEquity, originalRQ: Product)
-  def props(): Props = Props(new WalletOperator())
+  def props(): Props = Props(new WalletOperator(Map.empty))
 }
 
-class WalletOperator extends TapiporlaActor {
+class WalletOperator(blockedUserEquities: Map[String, UserEquity]) extends TapiporlaActor {
 
   implicit val timeout = Timeout(5 seconds) //TODO: To Config
 
@@ -34,7 +34,9 @@ class WalletOperator extends TapiporlaActor {
   //TODO: Validations (negative purchases... etc)
   //TODO: Way to handle concurrency (an Actor is specialized in only a shard of users?)
   //TODO: Eventual Consistent?
+  //TODO: Now if all the messages come together, we are having troubles...
   override def receive = {
+
     case AddPurchase(userId, equityId, purchase) =>
       log.info(s"AddPurchase received $userId $equityId $purchase")
       val f = for {

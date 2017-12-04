@@ -4,9 +4,9 @@ import akka.actor.{ActorRef, Props}
 import akka.routing.FromConfig
 import com.tapiporla.microservices.wallet.BossCoordinator.StartAllCoordinators
 import com.tapiporla.microservices.wallet.common.TapiporlaActor
-import com.tapiporla.microservices.wallet.managers.WalletOperator.AddPurchase
+import com.tapiporla.microservices.wallet.managers.WalletOperator.{AddDividend, AddMaintenanceFee, AddPurchase}
 import com.tapiporla.microservices.wallet.managers.{UserManager, WalletManager}
-import com.tapiporla.microservices.wallet.model.Purchase
+import com.tapiporla.microservices.wallet.model.{Dividend, MaintenanceFee, Purchase}
 import org.joda.time.DateTime
 
 
@@ -34,6 +34,9 @@ class BossCoordinator extends TapiporlaActor {
         context.actorOf(FromConfig.props(WalletManager.props(userRouter)), "walletRouter")
 
       walletRouter ! AddPurchase("prueba", "IAG", Purchase(DateTime.now(), 200, 15.0, 15.0))
+      walletRouter ! AddDividend("prueba", "IAG", Dividend(DateTime.now(), 30.0, 1.0))
+      walletRouter ! AddMaintenanceFee("prueba", "IAG", MaintenanceFee(DateTime.now(), 5.0))
+
       context.become(started(userRouter, walletRouter))
 
   }
