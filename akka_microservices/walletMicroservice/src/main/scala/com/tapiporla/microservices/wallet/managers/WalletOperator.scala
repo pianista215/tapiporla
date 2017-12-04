@@ -61,23 +61,18 @@ class WalletOperator extends TapiporlaActor {
       f pipeTo sender
   }
 
+  //TODO: Logic validations
   private def addPurchase(oldUserEquity: UserEquity, purchase: Purchase): UserEquity =
-    oldUserEquity.copy(
-      numberOfShares = oldUserEquity.numberOfShares + purchase.quantity,
-      purchases = oldUserEquity.purchases :+ purchase
-    )
+    oldUserEquity.withPurchase(purchase)
 
   private def addDividend(oldUserEquity: UserEquity, dividend: Dividend): UserEquity =
-    oldUserEquity.copy(
-      dividends = oldUserEquity.dividends :+ dividend
-    )
+    oldUserEquity.withDividend(dividend)
 
   private def addMaintenanceFee(oldUserEquity: UserEquity, fee: MaintenanceFee): UserEquity =
-    oldUserEquity.copy(
-      maintenanceFees = oldUserEquity.maintenanceFees :+ fee
-    )
+    oldUserEquity.withMaintenanceFee(fee)
 
   import com.sksamuel.elastic4s.ElasticDsl._
+  import com.tapiporla.microservices.wallet.common.CustomElasticJackson.Implicits._
 
   def retrieveUserInfo(userId: String, equityId: String): Future[UserEquity] =
     (esDAO ? RetrieveAllFromIndexSorted(
@@ -93,7 +88,15 @@ class WalletOperator extends TapiporlaActor {
       Some(1)
     )).mapTo[DataRetrieved].map{ retrieved =>
       log.debug(s"Find in ES, data: $retrieved")
-      retrieved.data.hits.headOption.map(UserEquity.fromHit).getOrElse(UserEquity.empty(userId, equityId))
+      retrieved.data.hits.headOption.map { hit =>
+        hit.safeTo[UserEquity] match{
+          case Left(e) =>
+            log.error(e, "Error parsing to UserEquity from ES")
+            throw e
+          case Right(ue) =>
+            ue
+        }
+      }.getOrElse(UserEquity.empty(userId, equityId))
     }
 
   def saveNewUserEquity(newState: UserEquity): Future[UserEquity] =

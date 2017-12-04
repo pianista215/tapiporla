@@ -10,6 +10,7 @@ val elastic4sVersion = "5.6.0"
 val scalaTestVersion = "3.0.4"
 val logbackVersion = "1.2.3"
 val typeSafeLogging = "3.7.2"
+val jacksonJodatime = "2.9.0"
 
 libraryDependencies ++= Seq(
   //Akka
@@ -21,11 +22,15 @@ libraryDependencies ++= Seq(
   "com.sksamuel.elastic4s" %% "elastic4s-core" % elastic4sVersion,
   "com.sksamuel.elastic4s" %% "elastic4s-tcp" % elastic4sVersion,
   "com.sksamuel.elastic4s" %% "elastic4s-xpack-security" % elastic4sVersion,
+  "com.sksamuel.elastic4s" %% "elastic4s-jackson" % elastic4sVersion,
   "com.sksamuel.elastic4s" %% "elastic4s-testkit" % elastic4sVersion % Test,
   "com.sksamuel.elastic4s" %% "elastic4s-embedded" % elastic4sVersion % Test,
 
   //Jodatime
   "com.github.nscala-time" %% "nscala-time" % jodaTimeWrapper,
+
+  //Jodatime-Jackson
+  "com.fasterxml.jackson.datatype" % "jackson-datatype-joda" % jacksonJodatime,
 
   //Scalatest
   "org.scalactic" %% "scalactic" % scalaTestVersion,

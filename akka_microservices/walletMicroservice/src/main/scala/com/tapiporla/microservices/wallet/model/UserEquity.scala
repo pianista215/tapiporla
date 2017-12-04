@@ -1,35 +1,12 @@
 package com.tapiporla.microservices.wallet.model
 
-import com.sksamuel.elastic4s.Hit
-import com.tapiporla.microservices.wallet.common.ElasticDAO
-import com.tapiporla.microservices.wallet.common.model.ElasticDocumentInsertable
-import com.tapiporla.microservices.wallet.dao.WalletESDAO
+import com.tapiporla.microservices.wallet.common.MathUtils
 
 object UserEquity {
-  def fromHit(t: Hit): UserEquity = {
-    val map = t.sourceAsMap
-    UserEquity(
-      map(WalletESDAO.user).toString,
-      map(WalletESDAO.equity).toString,
-      map(WalletESDAO.numberOfShares).toString.toInt,
-      BigDecimal(map(WalletESDAO.averageSharePrice).toString),
-      map(WalletESDAO.Purchases.id).asInstanceOf[Seq[Map[String,AnyRef]]].map{
-        x => Purchase.fromMap(x)
-      },
-      map(WalletESDAO.Dividends.id).asInstanceOf[Seq[Map[String, AnyRef]]].map{
-        x => Dividend.fromMap(x)
-      },
-      map(WalletESDAO.MaintenanceFees.id).asInstanceOf[Seq[Map[String, AnyRef]]].map{
-        x => MaintenanceFee.fromMap(x)
-      },
-      map.get(ElasticDAO.documentsId).map(_.toString)
-    )
-
-    //TODO: Use HitReader?? How to use it with arrays?
-  }
 
   def empty(user: String, equity: String): UserEquity =
     UserEquity(user, equity, 0, 0.0, Seq(), Seq(), Seq(), Some(s"$user@$equity"))
+
 }
 
 case class UserEquity(
@@ -41,19 +18,41 @@ case class UserEquity(
                        dividends: Seq[Dividend],
                        maintenanceFees: Seq[MaintenanceFee],
                        elasticId: Option[String] = None
-                     ) extends ElasticDocumentInsertable {
+                     ) {
 
-  //TODO: Enhance JSON mapping using a library like (Same as StockMicroservice)
-  override def json =
-    s""" {
-       |"${WalletESDAO.user}" : "$user",
-       |"${WalletESDAO.equity}" : "$equity",
-       |"${WalletESDAO.numberOfShares}" : "$numberOfShares",
-       |"${WalletESDAO.averageSharePrice}" : "$averageSharePrice",
-       |"${WalletESDAO.Purchases.id}" : ${purchases.map(_.json).mkString("[",",","]")},
-       |"${WalletESDAO.Dividends.id}" : ${dividends.map(_.json).mkString("[", ",", "]")},
-       |"${WalletESDAO.MaintenanceFees.id}" : ${maintenanceFees.map(_.json).mkString("[", ",", "]")}
-       |} """.stripMargin
+  def withPurchase(p: Purchase): UserEquity =
+    copy(
+      numberOfShares = numberOfShares + p.quantity,
+      averageSharePrice = generateAvgPrice(purchases :+ p, dividends, maintenanceFees),
+      purchases = (purchases :+ p).sortBy(_.date.toDate)
+    )
+
+  def withDividend(d: Dividend): UserEquity =
+    copy(
+      dividends = (dividends :+ d).sortBy(_.date.toDate),
+      averageSharePrice = generateAvgPrice(purchases, dividends :+ d, maintenanceFees),
+    )
+
+  def withMaintenanceFee(f: MaintenanceFee): UserEquity =
+    copy(
+      maintenanceFees = (maintenanceFees :+ f).sortBy(_.date.toDate),
+      averageSharePrice = generateAvgPrice(purchases, dividends, maintenanceFees :+ f)
+    )
+
+  def generateAvgPrice(purchases: Seq[Purchase], dividends: Seq[Dividend], fees: Seq[MaintenanceFee]): BigDecimal = {
+    MathUtils.normalize (
+      (
+
+      purchases.map(p => p.quantity * p.pricePerShare + p.fee).sum +
+      dividends.map(d => d.fee - d.profit).sum +
+      maintenanceFees.map(_.fee).sum
+
+      ) / generateNumberOfShares(purchases)
+    )
+  }
+
+  def generateNumberOfShares(purchases: Seq[Purchase]): Int =
+    purchases.map(_.quantity).sum
 
 }
 

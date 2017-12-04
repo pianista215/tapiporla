@@ -11,7 +11,6 @@ import com.sksamuel.elastic4s.searches.sort.FieldSortDefinition
 import com.sksamuel.elastic4s.xpack.security.XPackElasticClient
 import com.tapiporla.microservices.wallet.CausedBy
 import com.tapiporla.microservices.wallet.common.ElasticDAO._
-import com.tapiporla.microservices.wallet.common.model.ElasticDocumentInsertable
 import org.elasticsearch.ResourceAlreadyExistsException
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy
 import org.elasticsearch.common.settings.Settings
@@ -22,16 +21,16 @@ object ElasticDAO {
 
   val documentsId = "_id"
 
-  case class SaveInIndex(index: String, typeName: String, jsonDocs: Seq[ElasticDocumentInsertable])
+  case class SaveInIndex(index: String, typeName: String, jsonDocs: Seq[Product])
 
   case class ErrorSavingData(
                               error: Exception,
                               index: String,
                               typeName: String,
-                              jsonDocs: Seq[ElasticDocumentInsertable]
+                              jsonDocs: Seq[Product]
                             )
 
-  case class DataSavedConfirmation(index: String, typeName: String, jsonDocs: Seq[ElasticDocumentInsertable])
+  case class DataSavedConfirmation(index: String, typeName: String, jsonDocs: Seq[Product])
 
   case class DeleteFromIndex(
                               index: String,
@@ -48,7 +47,7 @@ object ElasticDAO {
 
   case class DeleteConfirmation(index: String, typeName: String, originalRQ: DeleteFromIndex)
 
-  case class Upsert(index: String, typeName: String, id: String, newDoc: ElasticDocumentInsertable)
+  case class Upsert(index: String, typeName: String, id: String, newDoc: Product)
 
   case class UpsertConfirmation(index: String, typeName: String, originalRQ: Upsert)
 
@@ -128,13 +127,14 @@ trait ElasticDAO extends TapiporlaActor with Stash {
       stash()
   }
 
+  import com.tapiporla.microservices.wallet.common.CustomElasticJackson.Implicits._
 
   def readyToProcess: Receive = {
 
     case SaveInIndex(index, typeName, jsonDocs) =>
       client.execute {
         bulk (
-          jsonDocs.map(x => indexInto(index / typeName).doc(x.json))
+          jsonDocs.map(x => indexInto(index / typeName).doc(x))
         ) refresh(RefreshPolicy.WAIT_UNTIL)
       } map { _=>
         log.info(s"Completed to save in ES index $index type $typeName: ${jsonDocs.length} docs")
@@ -180,8 +180,8 @@ trait ElasticDAO extends TapiporlaActor with Stash {
 
     case rq @ Upsert(index, typeName, id, newDoc) =>
       client.execute {
-        log.debug(s"Upserting:${newDoc.json}")
-        update(id) in index/typeName docAsUpsert newDoc.json
+        log.debug(s"Upserting:${newDoc}")
+        update(id) in index/typeName docAsUpsert newDoc
       } map { _ =>
         log.info(s"Updated document with id $id, in $index $typeName, newDoc: $newDoc")
         UpsertConfirmation(index, typeName, rq)
