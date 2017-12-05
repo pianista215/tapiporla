@@ -33,11 +33,11 @@ class BossCoordinator extends TapiporlaActor {
       val walletRouter =
         context.actorOf(FromConfig.props(WalletManager.props(userRouter)), "walletRouter")
 
+      context.become(started(userRouter, walletRouter))
+
       walletRouter ! AddPurchase("prueba", "IAG", Purchase(DateTime.now(), 200, 15.0, 15.0))
       walletRouter ! AddDividend("prueba", "IAG", Dividend(DateTime.now(), 30.0, 1.0))
       walletRouter ! AddMaintenanceFee("prueba", "IAG", MaintenanceFee(DateTime.now(), 5.0))
-
-      context.become(started(userRouter, walletRouter))
 
   }
 

@@ -1,10 +1,10 @@
 package com.tapiporla.microservices.wallet.managers
 
-import akka.actor.Props
+import akka.actor.{Props, Stash}
 import com.tapiporla.microservices.wallet.common.TapiporlaActor
 import com.tapiporla.microservices.wallet.dao.WalletESDAO
 import com.tapiporla.microservices.wallet.managers.WalletManager.OperationWithUser
-import com.tapiporla.microservices.wallet.managers.WalletOperator.{AddDividend, AddMaintenanceFee, AddPurchase}
+import com.tapiporla.microservices.wallet.managers.WalletOperator.{AddDividend, AddMaintenanceFee, AddPurchase, ReleaseUser}
 import com.tapiporla.microservices.wallet.model.{Dividend, MaintenanceFee, Purchase, UserEquity}
 
 import scala.concurrent.Future
@@ -20,47 +20,80 @@ object WalletOperator {
   case class AddDividend(userId: String, equityId: String, dividend: Dividend) extends OperationWithUser
   case class AddMaintenanceFee(userId: String, equityId: String, fee: MaintenanceFee) extends OperationWithUser
 
+  private case class ReleaseUser(userId: String, equityId: String)
+
   case class SaveSuccess(userId: String, equityId: String, newState: UserEquity, originalRQ: Product)
-  def props(): Props = Props(new WalletOperator(Map.empty))
+  def props(): Props = Props(new WalletOperator())
 }
 
-class WalletOperator(blockedUserEquities: Map[String, UserEquity]) extends TapiporlaActor {
+class WalletOperator extends TapiporlaActor with Stash {
 
-  implicit val timeout = Timeout(5 seconds) //TODO: To Config
+  implicit val timeout = Timeout(20 seconds) //TODO: To Config
 
   val esDAO =
     context.actorOf(WalletESDAO.props(), name=s"WalletESDAO_${self.path.name}")
 
+  override def receive =
+    ready(Set.empty)
+
   //TODO: Validations (negative purchases... etc)
   //TODO: Way to handle concurrency (an Actor is specialized in only a shard of users?)
   //TODO: Eventual Consistent?
-  //TODO: Now if all the messages come together, we are having troubles...
-  override def receive = {
+  def ready(blockedUserEquities: Set[(String,String)]): Receive = {
 
-    case AddPurchase(userId, equityId, purchase) =>
-      log.info(s"AddPurchase received $userId $equityId $purchase")
-      val f = for {
-        oldUserEquity <- retrieveUserInfo(userId, equityId)
-        newUserEquity <- saveNewUserEquity(addPurchase(oldUserEquity, purchase))
-      } yield newUserEquity
-      f pipeTo sender
+    case rq@AddPurchase(userId, equityId, purchase) =>
+      if(blockedUserEquities contains (userId,equityId)){
+        log.info("User blocked. Waiting to unlock, before process.")
+        stash()
+      } else {
+        log.info(s"AddPurchase received $userId $equityId $purchase")
+        val f = for {
+          oldUserEquity <- retrieveUserInfo(userId, equityId)
+          newUserEquity <- saveNewUserEquity(addPurchase(oldUserEquity, purchase))
+        } yield newUserEquity
+        f onComplete {_ => self ! ReleaseUser(userId, equityId)}
+        f pipeTo sender
+        context.become(ready(blockedUserEquities + ((userId, equityId))))
+      }
 
 
-    case AddDividend(userId, equityId, dividend) =>
-      log.info(s"AddDividend received $userId $equityId $dividend")
-      val f = for {
-        oldUserEquity <- retrieveUserInfo(userId, equityId)
-        newUserEquity <- saveNewUserEquity(addDividend(oldUserEquity, dividend))
-      } yield newUserEquity
-      f pipeTo sender
 
-    case AddMaintenanceFee(userId, equityId, fee) =>
-      log.info(s"AddMaintenanceFee received $userId $equityId $fee")
-      val f = for {
-        oldUserEquity <- retrieveUserInfo(userId, equityId)
-        newUserEquity <- saveNewUserEquity(addMaintenanceFee(oldUserEquity, fee))
-      } yield newUserEquity
-      f pipeTo sender
+    case rq@AddDividend(userId, equityId, dividend) =>
+      if(blockedUserEquities contains (userId,equityId)){
+        log.info("User blocked. Waiting to unlock, before process.")
+        stash()
+      } else {
+        log.info(s"AddDividend received $userId $equityId $dividend")
+        val f = for {
+          oldUserEquity <- retrieveUserInfo(userId, equityId)
+          newUserEquity <- saveNewUserEquity(addDividend(oldUserEquity, dividend))
+        } yield newUserEquity
+        f onComplete {_ => self !ReleaseUser(userId, equityId)}
+        f pipeTo sender
+        context.become(ready(blockedUserEquities + ((userId, equityId))))
+      }
+
+    case rq@AddMaintenanceFee(userId, equityId, fee) =>
+      if(blockedUserEquities contains (userId,equityId)){
+        log.info("User blocked. Waiting to unlock, before process.")
+        stash()
+      } else {
+        log.info(s"AddMaintenanceFee received $userId $equityId $fee")
+        val f = for {
+          oldUserEquity <- retrieveUserInfo(userId, equityId)
+          newUserEquity <- saveNewUserEquity(addMaintenanceFee(oldUserEquity, fee))
+        } yield newUserEquity
+        f onComplete {_ => self !ReleaseUser(userId, equityId)}
+        f pipeTo sender
+        context.become(ready(blockedUserEquities + ((userId, equityId))))
+      }
+
+
+
+    case ReleaseUser(userId, equityId) =>
+      log.info(s"Releasing user: $userId - $equityId")
+      unstashAll()
+      context.become(ready(blockedUserEquities - ((userId, equityId))))
   }
 
   //TODO: Logic validations

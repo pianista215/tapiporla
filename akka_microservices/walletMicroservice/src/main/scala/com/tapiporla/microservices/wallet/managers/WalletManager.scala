@@ -18,15 +18,17 @@ object WalletManager {
     def userId: String
   }
 
+
+
   def props(userRouter: ActorRef): Props = Props(new WalletManager(userRouter))
 }
 
 class WalletManager(userRouter: ActorRef) extends TapiporlaActor {
 
-  implicit val timeout = Timeout(5 seconds) //TODO: To Config
+  implicit val timeout = Timeout(20 seconds) //TODO: To Config
 
   val walletOperatorsRouter = {
-    val routees = Vector.fill(5) { //TODO: Config
+    val routees = Vector.fill(1) { //TODO: Config
       val r = context.actorOf(WalletOperator.props())
       context watch r
       ActorRefRoutee(r)

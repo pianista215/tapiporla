@@ -189,7 +189,7 @@ trait ElasticDAO extends TapiporlaActor with Stash {
         case e: Exception =>
           log.error(e, s"Impossible to update in index $index $typeName doc $newDoc with id $id")
           ErrorUpsertingData(e, index, typeName, rq)
-      }
+      } pipeTo sender
   }
 
 }
