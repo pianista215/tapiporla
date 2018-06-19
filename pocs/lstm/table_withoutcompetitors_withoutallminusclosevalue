@@ -10,3 +10,14 @@ batch_size=200 0,89 y 0,87
 batch_size=100 0,88 y 0,86
 batch_size=25 0,88 y 0,84
 batch_size=10 0,85 y 0,81
+epochs 300
+batch_size=200 0,91 y 0,86
+
+dropout=0.1
+LSTM(128)
+Dense(32)
+Dense(16)
+Dense(16)
+Dense(number_features)
+epochs 100
+batch_size=200 0,89 y 0,86
