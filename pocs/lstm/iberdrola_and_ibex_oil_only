@@ -1,0 +1,14 @@
+opt = Adam(lr=0.005, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+rms = RMSprop(lr=0.008)
+
+model = Sequential()
+model.add(LSTM(128, input_shape=(package_size, number_features), dropout=dropout))
+model.add(Dense(32))
+model.add(Dense(16))
+model.add(Dense(number_features - 3))
+
+100 epochs
+batch_size=200
+0,97 y 0,96
+
+Ha mejorado bastante por la continuidad de los datos...
