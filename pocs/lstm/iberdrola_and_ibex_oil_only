@@ -11,4 +11,102 @@ model.add(Dense(number_features - 3))
 batch_size=200
 0,97 y 0,96
 
-Ha mejorado bastante por la continuidad de los datos...
+model = Sequential()
+model.add(LSTM(128, return_sequences=True, input_shape=(package_size, number_features), dropout=dropout))
+model.add(Dense(32))
+model.add(LSTM(32, dropout=dropout))
+model.add(Dense(16))
+model.add(Dense(16))
+model.add(Dense(8))
+model.add(Dense(number_features - 3))
+
+100 epochs
+batch_size=all_samples
+0,95 y 0,95 Movimientos muy suaves en la predicción
+
+model = Sequential()
+model.add(LSTM(128, return_sequences=True, input_shape=(package_size, number_features), dropout=dropout))
+model.add(LSTM(128, dropout=dropout))
+model.add(Dense(32))
+model.add(Dense(16))
+model.add(Dense(16))
+model.add(Dense(8))
+model.add(Dense(number_features - 3))
+
+100 epochs
+batch_size=all_samples
+0,95 y 0,96 Movimientos muy suaves en la predicción
+
+model = Sequential()
+model.add(LSTM(256, input_shape=(package_size, number_features), dropout=dropout))
+model.add(Dense(128))
+model.add(Dense(64))
+model.add(Dense(32))
+model.add(Dense(16))
+model.add(Dense(16))
+model.add(Dense(8))
+model.add(Dense(number_features - 3))
+
+100 epochs
+batch_size=all_samples
+0,95 y 0,96
+Coge las pendientes un poco mejor, aunque la predicción es algo extraña (demasiado hacia arriba), poco realista, pocos movimientos oscilatorios
+
+
+model = Sequential()
+model.add(LSTM(128, input_shape=(package_size, number_features), dropout=dropout))
+model.add(BatchNormalization())
+model.add(Dense(16))
+model.add(BatchNormalization())
+model.add(Dense(16))
+model.add(BatchNormalization())
+model.add(Dense(8))
+model.add(BatchNormalization())
+model.add(Dense(number_features - 3))
+100 epochs
+batch_size=all_samples
+0,92 y 0,95
+No es nada natural... No le sienta bien la normalización a las pendientes. Pocas.
+
+model = Sequential()
+model.add(LSTM(512, input_shape=(package_size, number_features), dropout=dropout))
+model.add(BatchNormalization())
+model.add(Dense(256))
+model.add(BatchNormalization())
+model.add(Dense(128))
+model.add(BatchNormalization())
+model.add(Dense(64))
+model.add(BatchNormalization())
+model.add(Dense(32))
+model.add(BatchNormalization())
+model.add(Dense(16))
+model.add(BatchNormalization())
+model.add(Dense(8))
+model.add(BatchNormalization())
+model.add(Dense(number_features - 3))
+100 epochs
+batch_size=all_samples
+0,95 y 0,95
+bastante más natural y más ajustado, empieza a parecer algo mejor...
+
+model = Sequential()
+model.add(LSTM(512, return_sequences=True, input_shape=(package_size, number_features), dropout=dropout))
+model.add(BatchNormalization())
+model.add(LSTM(512, dropout=dropout))
+model.add(BatchNormalization())
+model.add(Dense(256))
+model.add(BatchNormalization())
+model.add(Dense(128))
+model.add(BatchNormalization())
+model.add(Dense(64))
+model.add(BatchNormalization())
+model.add(Dense(32))
+model.add(BatchNormalization())
+model.add(Dense(16))
+model.add(BatchNormalization())
+model.add(Dense(8))
+model.add(BatchNormalization())
+model.add(Dense(number_features - 3))
+100 epochs
+batch_size=all_samples
+0,96  y 0,95 (tarda un huevo en entrenar, la curva me gusta. No encaja con lo que está pasando del todo, pero me gusta)
