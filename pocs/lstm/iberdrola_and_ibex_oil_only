@@ -110,3 +110,27 @@ model.add(Dense(number_features - 3))
 100 epochs
 batch_size=all_samples
 0,96  y 0,95 (tarda un huevo en entrenar, la curva me gusta. No encaja con lo que está pasando del todo, pero me gusta)
+
+
+Una stateful!!
+model = Sequential()
+model.add(LSTM(512, stateful = True, return_sequences=True, batch_input_shape=(batch_size, package_size, number_features), dropout=dropout))
+model.add(BatchNormalization())
+model.add(LSTM(512, dropout=dropout))
+model.add(BatchNormalization())
+model.add(Dense(256))
+model.add(BatchNormalization())
+model.add(Dense(128))
+model.add(BatchNormalization())
+model.add(Dense(64))
+model.add(BatchNormalization())
+model.add(Dense(32))
+model.add(BatchNormalization())
+model.add(Dense(16))
+model.add(BatchNormalization())
+model.add(Dense(8))
+model.add(BatchNormalization())
+model.add(Dense(number_features - 3))
+100 epochs
+batch_size=all_samples
+
