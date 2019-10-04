@@ -22,4 +22,14 @@ object StatsUtils {
     ema(macd(numberOfPeriods + 1), previousEma, numberOfPeriods)
   }
 
+  def calculateStochK(currentDay: BigDecimal, history: Seq[BigDecimal]): BigDecimal = {
+    val min = history.reduceLeft(_ min _)
+    val max = history.reduceLeft(_ max _)
+    (currentDay - min) / (max - min)*100
+  }
+
+  def calculateStochD(stoch: Seq[BigDecimal], numberOfPeriods: Int = 9): BigDecimal = {
+    mean(stoch.take(numberOfPeriods))
+  }
+
 }
