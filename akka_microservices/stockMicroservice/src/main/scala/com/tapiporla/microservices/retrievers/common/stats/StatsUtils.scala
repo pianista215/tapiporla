@@ -13,4 +13,13 @@ object StatsUtils {
     currentDay * k + previousEma * (1-k)
   }
 
+  def macd(ema1: BigDecimal, ema2: BigDecimal): BigDecimal = {
+    ema1 - ema2
+  }
+
+  def macdSignal(macd: Seq[BigDecimal], numberOfPeriods: Int = 9): BigDecimal = {
+    val previousEma = mean(macd.take(numberOfPeriods))
+    ema(macd(numberOfPeriods + 1), previousEma, numberOfPeriods)
+  }
+
 }
