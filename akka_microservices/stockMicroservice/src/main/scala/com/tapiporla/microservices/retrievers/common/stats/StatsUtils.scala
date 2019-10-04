@@ -21,7 +21,7 @@ object StatsUtils {
     val previousEma = mean(macd.take(numberOfPeriods))
     ema(macd(numberOfPeriods + 1), previousEma, numberOfPeriods)
   }
-
+  
   def calculateStochK(currentDay: BigDecimal, history: Seq[BigDecimal]): BigDecimal = {
     val min = history.reduceLeft(_ min _)
     val max = history.reduceLeft(_ max _)
