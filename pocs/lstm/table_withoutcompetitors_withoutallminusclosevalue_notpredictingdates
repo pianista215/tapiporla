@@ -1,0 +1,27 @@
+Used opt = Adam(lr=0.005, beta_1=0.9, beta_2=0.999, epsilon=None, decay=0.0, amsgrad=False)
+
+dropout=0.1
+LSTM(128)
+Dense(32)
+Dense(16)
+Dense(16)
+Dense(number_features - 3)
+epochs 300
+batch_size 200: 0,92 y 0,90
+
+dropout=0.1
+LSTM(128)
+Dense(32)
+Dense(16)
+Dense(8)
+Dense(number_features - 3)
+epochs 100
+batch_size 200: 0,96 y 0,93
+
+dropout=0.1
+LSTM(128)
+Dense(32)
+Dense(16)
+Dense(number_features - 3)
+epochs 100
+batch_size 200:  0,95 y 0,93
